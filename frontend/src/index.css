@@ -1,0 +1,13 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Noto+Kufi+Arabic:wght@400;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply font-cairo bg-white text-gray-900;
+}
+
+a {
+  @apply text-quran-600 hover:text-quran-700 transition-colors;
+}
