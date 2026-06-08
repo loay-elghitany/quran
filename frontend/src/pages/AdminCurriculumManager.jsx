@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
 
 const emptyLesson = { title: "", task: "", pdfUrl: "", videoUrl: "" };
@@ -43,7 +44,7 @@ export default function AdminCurriculumManager() {
         setGroups(groupResponse.data.groups || []);
       } catch (error) {
         console.error(error);
-        setMessage("حدث خطأ أثناء تحميل بيانات المناهج أو المجموعات.");
+        setMessage("فشل تحميل بيانات المناهج أو المجموعات.");
       } finally {
         setLoading(false);
       }
@@ -124,9 +125,15 @@ export default function AdminCurriculumManager() {
       setMessage("تم رفع ملف PDF بنجاح.");
     } catch (error) {
       console.error(error);
-      setMessage("فشل رفع ملف PDF. تحقق من نوع الملف وحاول مرة أخرى.");
+      setMessage(
+        getApiErrorMessage(
+          error,
+          "فشل رفع ملف PDF. تحقق من نوع الملف وحاول مرة أخرى.",
+        ),
+      );
     }
   };
+
   const saveCurriculum = async (event) => {
     event.preventDefault();
     if (!activeCurriculum.name.trim()) {
@@ -156,7 +163,7 @@ export default function AdminCurriculumManager() {
       resetForm();
     } catch (error) {
       console.error(error);
-      setMessage(error.response?.data?.message || "حدث خطأ أثناء حفظ المنهج.");
+      setMessage(getApiErrorMessage(error, "فشل حفظ المنهج."));
     } finally {
       setSaving(false);
     }
@@ -176,7 +183,7 @@ export default function AdminCurriculumManager() {
       setMessage("تم تعيين المنهج للمجموعة بنجاح.");
     } catch (error) {
       console.error(error);
-      setMessage(error.response?.data?.message || "فشل تعيين المنهج للمجموعة.");
+      setMessage(getApiErrorMessage(error, "فشل تعيين المنهج للمجموعة."));
     }
   };
 
@@ -192,8 +199,7 @@ export default function AdminCurriculumManager() {
             إدارة المناهج والمسارات الدراسية
           </h1>
           <p className="mt-3 text-slate-600">
-            أنشئ مناهج مرتبة، أضف الدروس، واربط المنهج بالمجموعات. يمكن للمعلم
-            والمتعلم رؤية الدرس الحالي مباشرة.
+            أنشئ المناهج، أضف الدروس ووزع المناهج على المجموعات بسهولة.
           </p>
         </header>
 
@@ -218,7 +224,7 @@ export default function AdminCurriculumManager() {
                       handleCurriculumChange("name", e.target.value)
                     }
                     className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                    placeholder="مثلًا: منهج التحضير الأسبوعي"
+                    placeholder="مثلاً: منهج التحضير الأول"
                   />
                 </label>
                 <label className="block text-sm text-slate-700">
@@ -263,7 +269,7 @@ export default function AdminCurriculumManager() {
 
                 {activeCurriculum.lessons.length === 0 ? (
                   <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">
-                    أضف درسًا واحدًا على الأقل إلى المنهج.
+                    لم يتم إضافة دروس إلى المنهج.
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -282,7 +288,7 @@ export default function AdminCurriculumManager() {
                               درس {index + 1}
                             </p>
                             <p className="font-semibold text-slate-900">
-                              {lesson.title || "عنوان غير محدد"}
+                              {lesson.title || "عنوان الدرس"}
                             </p>
                           </div>
                           <div className="flex gap-2">
@@ -313,11 +319,11 @@ export default function AdminCurriculumManager() {
                                   handleLessonChange("title", e.target.value)
                                 }
                                 className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                                placeholder="مثلًا: درس الحفظ الأول"
+                                placeholder="مثلاً: درس الحفظ الأول"
                               />
                             </label>
                             <label className="block text-sm text-slate-700">
-                              المهمة / المطلوب
+                              المحتوى / النشاط
                               <textarea
                                 value={lesson.task}
                                 onChange={(e) =>
@@ -325,7 +331,7 @@ export default function AdminCurriculumManager() {
                                 }
                                 className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
                                 rows={4}
-                                placeholder="اوصف المطلوب حفظه أو مراجعته"
+                                placeholder="اكتب وصف الدرس أو النشاط هنا"
                               />
                             </label>
                             <div className="grid gap-4 lg:grid-cols-2">
@@ -395,7 +401,7 @@ export default function AdminCurriculumManager() {
 
           <section className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
             <h2 className="text-2xl font-semibold text-slate-900 mb-6">
-              تعين المنهج لمجموعة
+              تعيين المنهج للمجموعة
             </h2>
 
             <form className="space-y-4" onSubmit={assignCurriculum}>
@@ -447,13 +453,13 @@ export default function AdminCurriculumManager() {
               قائمة المناهج
             </h2>
             <p className="text-sm text-slate-500">
-              عرض سريع للمناهج المسجلة وتعديلها.
+              عرض سريع للمناهج المسجلة وتفاصيلها.
             </p>
           </div>
 
           {loading ? (
             <div className="mt-6 rounded-3xl bg-slate-50 p-6 text-slate-600">
-              جاري التحميل...
+              جارٍ التحميل...
             </div>
           ) : curriculums.length === 0 ? (
             <div className="mt-6 rounded-3xl bg-slate-50 p-6 text-slate-600">
@@ -496,7 +502,7 @@ export default function AdminCurriculumManager() {
                         {curriculum.lessons.length > 0
                           ? curriculum.lessons[curriculum.lessons.length - 1]
                               .title
-                          : "لا توجد دروس"}
+                          : "لا يوجد درس"}
                       </p>
                     </div>
                   </div>

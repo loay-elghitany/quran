@@ -1,24 +1,33 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required." });
+      return res.status(400).json({
+        success: false,
+        message: "البريد الإلكتروني وكلمة المرور مطلوبة.",
+      });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials." });
+      return res.status(401).json({
+        success: false,
+        message:
+          "خطأ في اسم المستخدم أو كلمة المرور. يرجى التحقق وإعادة المحاولة.",
+      });
     }
 
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid credentials." });
+      return res.status(401).json({
+        success: false,
+        message:
+          "خطأ في اسم المستخدم أو كلمة المرور. يرجى التحقق وإعادة المحاولة.",
+      });
     }
 
     const token = jwt.sign(
@@ -28,7 +37,7 @@ const login = async (req, res) => {
     );
 
     res.json({
-      message: "Login successful.",
+      message: "تم تسجيل الدخول بنجاح.",
       token,
       user: {
         id: user._id,
@@ -39,7 +48,7 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 

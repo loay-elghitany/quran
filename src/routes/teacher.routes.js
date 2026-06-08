@@ -1,9 +1,8 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const {
   getTeacherDashboard,
+  getTeacherStudentsWithEvaluations,
   getStudents,
   getBadges,
   awardBadge,
@@ -36,21 +35,10 @@ const {
   leaveRequestStatusSchema,
   awardBadgeSchema,
 } = require("../validation/schemas/teacher.schema");
-
-const audioUploadPath = path.join(__dirname, "../uploads/audio");
-fs.mkdirSync(audioUploadPath, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: audioUploadPath,
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const extension = path.extname(file.originalname) || ".wav";
-    cb(null, `audio-${timestamp}${extension}`);
-  },
-});
+const { cloudinaryAudioStorage } = require("../config/cloudinary");
 
 const upload = multer({
-  storage,
+  storage: cloudinaryAudioStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("audio/")) {
@@ -67,6 +55,7 @@ router.use(authMiddleware);
 router.use(roleMiddleware("Teacher"));
 
 router.get("/dashboard", getTeacherDashboard);
+router.get("/students-with-evaluations", getTeacherStudentsWithEvaluations);
 router.get("/students", getStudents);
 router.get("/badges", getBadges);
 router.post(

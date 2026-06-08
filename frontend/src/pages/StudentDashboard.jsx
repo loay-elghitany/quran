@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
 import AnnouncementsBanner from "../components/AnnouncementsBanner";
 import PointsSystemGuide from "../components/PointsSystemGuide";
@@ -72,6 +73,41 @@ const getRankInfo = (points) => {
   );
 };
 
+const ticketTypeOptions = [
+  { value: "Complaint", label: "شكوى" },
+  { value: "Suggestion", label: "اقتراح" },
+  { value: "Technical_Issue", label: "مشكلة تقنية" },
+  { value: "Other", label: "أخرى" },
+];
+
+const ticketStatusMap = {
+  Pending: {
+    label: "قيد الانتظار",
+    style: "bg-amber-100 text-amber-900",
+    emoji: "🟡",
+  },
+  In_Progress: {
+    label: "قيد التنفيذ",
+    style: "bg-sky-100 text-sky-900",
+    emoji: "🔵",
+  },
+  Resolved: {
+    label: "تم الحل",
+    style: "bg-emerald-100 text-emerald-900",
+    emoji: "🟢",
+  },
+  Closed: {
+    label: "مغلقة",
+    style: "bg-slate-100 text-slate-900",
+    emoji: "🛟",
+  },
+  "In Progress": {
+    label: "قيد التنفيذ",
+    style: "bg-sky-100 text-sky-900",
+    emoji: "🔵",
+  },
+};
+
 const formatDate = (isoDate) => {
   return new Intl.DateTimeFormat("ar-EG", {
     day: "numeric",
@@ -81,6 +117,19 @@ const formatDate = (isoDate) => {
     minute: "2-digit",
   }).format(new Date(isoDate));
 };
+
+const getTicketTypeLabel = (type) =>
+  ticketTypeOptions.find((option) => option.value === type)?.label ||
+  type ||
+  "أخرى";
+
+const getTicketStatusInfo = (status) =>
+  ticketStatusMap[status] ||
+  ticketStatusMap[status?.replace(/\s+/g, "_")] || {
+    label: status || "غير محدد",
+    style: "bg-slate-100 text-slate-900",
+    emoji: "ℹ️",
+  };
 
 export default function StudentDashboard() {
   const [user, setUser] = useState(null);
@@ -97,6 +146,16 @@ export default function StudentDashboard() {
   const [avatarMessage, setAvatarMessage] = useState("");
   const [celebrationMessage, setCelebrationMessage] = useState("");
   const [leaderCelebration, setLeaderCelebration] = useState(false);
+  const [complaintsModalOpen, setComplaintsModalOpen] = useState(false);
+  const [userTickets, setUserTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketsError, setTicketsError] = useState("");
+  const [activeTicketTab, setActiveTicketTab] = useState(0);
+  const [ticketType, setTicketType] = useState("Complaint");
+  const [ticketSubject, setTicketSubject] = useState("");
+  const [ticketDescription, setTicketDescription] = useState("");
+  const [ticketAnonymous, setTicketAnonymous] = useState(false);
+  const [ticketSubmitLoading, setTicketSubmitLoading] = useState(false);
   const previousRankRef = useRef(null);
 
   const pointsBalance =
@@ -281,6 +340,68 @@ export default function StudentDashboard() {
     }
   }, [dashboard]);
 
+  useEffect(() => {
+    if (!complaintsModalOpen) return;
+
+    const fetchMyTickets = async () => {
+      setTicketsError("");
+      setTicketsLoading(true);
+      try {
+        const response = await api.get("/tickets/my-tickets");
+        setUserTickets(response.data.tickets || []);
+      } catch (error) {
+        console.error("فشل تحميل تذاكر المستخدم:", error);
+        setTicketsError(getApiErrorMessage(error, "حدث خطأ أثناء جلب تذاكرك."));
+      } finally {
+        setTicketsLoading(false);
+      }
+    };
+
+    fetchMyTickets();
+  }, [complaintsModalOpen]);
+
+  const handleSubmitTicket = async (event) => {
+    event.preventDefault();
+    setTicketsError("");
+
+    if (!ticketSubject.trim() || !ticketDescription.trim()) {
+      setTicketsError("يرجى ملء الموضوع والوصف قبل إرسال الطلب.");
+      return;
+    }
+
+    setTicketSubmitLoading(true);
+    try {
+      await api.post("/tickets", {
+        type: ticketType,
+        subject: ticketSubject,
+        description: ticketDescription,
+        isAnonymous: ticketAnonymous,
+        priority: "Low",
+      });
+      setTicketSubject("");
+      setTicketDescription("");
+      setTicketType("Complaint");
+      setTicketAnonymous(false);
+      setActiveTicketTab(1);
+      const response = await api.get("/tickets/my-tickets");
+      setUserTickets(response.data.tickets || []);
+      window.alert(
+        "تم إرسال طلبك بنجاح. يمكنك متابعة الحالة من خلال طلباتي السابقة.",
+      );
+    } catch (error) {
+      console.error("فشل إرسال التذكرة:", error);
+      setTicketsError(getApiErrorMessage(error, "حدث خطأ أثناء إرسال الطلب."));
+    } finally {
+      setTicketSubmitLoading(false);
+    }
+  };
+
+  const closeComplaintsModal = () => {
+    setComplaintsModalOpen(false);
+    setActiveTicketTab(0);
+    setTicketsError("");
+  };
+
   if (loading) {
     return (
       <div
@@ -390,6 +511,28 @@ export default function StudentDashboard() {
                 {celebrationMessage}
               </div>
             ) : null}
+
+            <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">الشكاوى والاقتراحات</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">
+                    تابع طلباتك أو قدّم شكوى جديدة
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    افتح نافذة الشكاوى للاطلاع على سجل طلباتك أو إرسال تذكرة
+                    جديدة.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setComplaintsModalOpen(true)}
+                  className="inline-flex items-center justify-center rounded-3xl bg-quran-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-quran-800"
+                >
+                  الشكاوى والاقتراحات
+                </button>
+              </div>
+            </div>
 
             <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -870,6 +1013,203 @@ export default function StudentDashboard() {
         <section className="mt-8">
           <PointsSystemGuide />
         </section>
+
+        {complaintsModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4">
+            <div className="max-h-[95vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+              <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-slate-900">
+                    الشكاوى والاقتراحات
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    أنشئ تذكرة جديدة أو طالع قائمة طلباتك السابقة.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeComplaintsModal}
+                  className="rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  إغلاق
+                </button>
+              </div>
+
+              <div className="mt-6">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicketTab(0)}
+                    className={`flex-1 rounded-full px-5 py-3 text-sm font-semibold transition ${
+                      activeTicketTab === 0
+                        ? "bg-quran-700 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    تقديم طلب جديد
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicketTab(1)}
+                    className={`flex-1 rounded-full px-5 py-3 text-sm font-semibold transition ${
+                      activeTicketTab === 1
+                        ? "bg-quran-700 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    طلباتي السابقة
+                  </button>
+                </div>
+
+                {activeTicketTab === 0 ? (
+                  <form
+                    onSubmit={handleSubmitTicket}
+                    className="mt-6 space-y-5"
+                  >
+                    {ticketsError ? (
+                      <div className="rounded-3xl bg-rose-50 p-4 text-rose-700">
+                        {ticketsError}
+                      </div>
+                    ) : null}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        نوع الطلب
+                        <select
+                          value={ticketType}
+                          onChange={(event) =>
+                            setTicketType(event.target.value)
+                          }
+                          className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-quran-500"
+                        >
+                          {ticketTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الموضوع
+                        <input
+                          type="text"
+                          value={ticketSubject}
+                          onChange={(event) =>
+                            setTicketSubject(event.target.value)
+                          }
+                          placeholder="اكتب عنوانًا موجزًا للطلب"
+                          className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-quran-500"
+                        />
+                      </label>
+                    </div>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      وصف كامل
+                      <textarea
+                        value={ticketDescription}
+                        onChange={(event) =>
+                          setTicketDescription(event.target.value)
+                        }
+                        rows={5}
+                        placeholder="اشرح تفاصيل الطلب أو الشكوى بدقة"
+                        className="w-full rounded-[1.5rem] border border-slate-300 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-quran-500"
+                      />
+                    </label>
+                    <label className="inline-flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={ticketAnonymous}
+                        onChange={(event) =>
+                          setTicketAnonymous(event.target.checked)
+                        }
+                        className="h-5 w-5 rounded border-slate-300 text-quran-700 focus:ring-quran-500"
+                      />
+                      إرسال كمجهول
+                    </label>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-sm text-slate-500">
+                        سيتم حفظ الحالة كـ "قيد الانتظار" حتى يرد أحد الموظفين.
+                      </span>
+                      <button
+                        type="submit"
+                        disabled={ticketSubmitLoading}
+                        className="inline-flex items-center justify-center rounded-3xl bg-quran-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-quran-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      >
+                        {ticketSubmitLoading
+                          ? "جارٍ الإرسال..."
+                          : "إرسال الطلب"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="mt-6 space-y-4">
+                    {ticketsLoading ? (
+                      <div className="rounded-3xl bg-slate-50 p-6 text-center text-slate-600">
+                        جاري تحميل طلباتك...
+                      </div>
+                    ) : userTickets.length === 0 ? (
+                      <div className="rounded-3xl bg-slate-50 p-6 text-center text-slate-600">
+                        لم تقم بتقديم أي شكاوى أو اقتراحات حتى الآن.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {userTickets.map((ticket) => {
+                          const statusInfo = getTicketStatusInfo(ticket.status);
+                          return (
+                            <div
+                              key={ticket._id}
+                              className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm"
+                            >
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <p className="text-sm text-slate-500">
+                                    الموضوع
+                                  </p>
+                                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                                    {ticket.subject}
+                                  </p>
+                                  <p className="mt-3 text-sm text-slate-600">
+                                    {getTicketTypeLabel(ticket.type)} ·{" "}
+                                    {formatDate(ticket.createdAt)}
+                                  </p>
+                                </div>
+                                <span
+                                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${statusInfo.style}`}
+                                >
+                                  <span>{statusInfo.emoji}</span>
+                                  <span>{statusInfo.label}</span>
+                                </span>
+                              </div>
+                              <div className="mt-4 rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
+                                <p className="font-semibold text-slate-900">
+                                  الوصف
+                                </p>
+                                <p className="mt-2 whitespace-pre-line">
+                                  {ticket.description || "لا يوجد وصف إضافي."}
+                                </p>
+                              </div>
+                              {(ticket.adminReply ||
+                                (ticket.replies?.length > 0 &&
+                                  ticket.replies[0]?.message)) && (
+                                <div className="mt-4 rounded-3xl border-l-4 border-quran-600 bg-quran-50 p-4 text-sm text-slate-700">
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    رد الإدارة
+                                  </p>
+                                  <p className="mt-2">
+                                    {ticket.adminReply ||
+                                      ticket.replies[0]?.message}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

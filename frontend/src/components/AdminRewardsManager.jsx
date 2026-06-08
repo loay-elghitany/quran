@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../utils/apiError";
 
 const redemptionStatusMap = {
   pending: "قيد الانتظار",
@@ -44,7 +45,7 @@ export default function AdminRewardsManager() {
       setRedemptions(redemptionsRes.data.redemptions || []);
     } catch (error) {
       console.error("Failed to load reward manager data:", error);
-      setMessage("حدث خطأ أثناء تحميل بيانات المكافآت.");
+      setMessage("فشل تحميل بيانات المكافآت.");
     } finally {
       setLoading(false);
     }
@@ -98,24 +99,24 @@ export default function AdminRewardsManager() {
       await loadData();
     } catch (error) {
       console.error("Failed to save reward:", error);
-      setMessage(error.response?.data?.message || "فشل حفظ المكافأة.");
+      setMessage(getApiErrorMessage(error, "فشل حفظ المكافأة."));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (rewardId) => {
-    if (!window.confirm("هل أنت متأكد أنك تريد حذف هذه المكافأة؟")) {
+    if (!window.confirm("هل أنت متأكد من حذف هذه المكافأة؟")) {
       return;
     }
 
     try {
       await api.delete(`/admin/rewards/${rewardId}`);
-      setMessage("تم حذف المكافأة.");
+      setMessage("تم حذف المكافأة بنجاح.");
       await loadData();
     } catch (error) {
       console.error("Failed to delete reward:", error);
-      setMessage(error.response?.data?.message || "فشل حذف المكافأة.");
+      setMessage(getApiErrorMessage(error, "فشل حذف المكافأة."));
     }
   };
 
@@ -126,7 +127,7 @@ export default function AdminRewardsManager() {
       await loadData();
     } catch (error) {
       console.error("Failed to update redemption status:", error);
-      setMessage(error.response?.data?.message || "فشل تحديث حالة الطلب.");
+      setMessage(getApiErrorMessage(error, "فشل تحديث حالة الطلب."));
     }
   };
 
@@ -138,7 +139,7 @@ export default function AdminRewardsManager() {
             إدارة المكافآت وطلبات الاستبدال
           </h2>
           <p className="text-sm text-slate-500">
-            أضف أو عدّل المكافآت، واعتمد أو ارفض طلبات الطلاب بسهولة.
+            أضف أو عدّل المكافآت واعرض طلبات الاستبدال بسهولة.
           </p>
         </div>
       </div>
@@ -159,7 +160,7 @@ export default function AdminRewardsManager() {
                   value={rewardForm.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   className="w-full rounded-3xl border border-slate-300 px-4 py-3"
-                  placeholder="مثال: ساعة قراءة إضافية"
+                  placeholder="مثال: ساعة قراءة - 50 نقطة"
                 />
               </label>
               <label className="space-y-2 text-sm text-slate-700">
@@ -178,12 +179,12 @@ export default function AdminRewardsManager() {
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               <label className="space-y-2 text-sm text-slate-700">
-                أيقونة / رمز تعبيري
+                أيقونة / رمز تعريفي
                 <input
                   value={rewardForm.icon}
                   onChange={(e) => handleChange("icon", e.target.value)}
                   className="w-full rounded-3xl border border-slate-300 px-4 py-3"
-                  placeholder="مثال: 🎁"
+                  placeholder="مثال: 🏅"
                 />
               </label>
               <label className="space-y-2 text-sm text-slate-700">
@@ -192,7 +193,7 @@ export default function AdminRewardsManager() {
                   value={rewardForm.description}
                   onChange={(e) => handleChange("description", e.target.value)}
                   className="w-full rounded-3xl border border-slate-300 px-4 py-3"
-                  placeholder="مثال: مكافأة للطالب المجد"
+                  placeholder="مثال: مكافأة للطالب المتميز"
                 />
               </label>
             </div>
@@ -209,7 +210,7 @@ export default function AdminRewardsManager() {
                 onClick={handleReset}
                 className="rounded-3xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >
-                إعادة تعيين
+                إعادة تعيين النموذج
               </button>
             </div>
           </form>
@@ -217,11 +218,11 @@ export default function AdminRewardsManager() {
           <div className="space-y-4">
             {loading ? (
               <div className="rounded-3xl border border-quran-200 bg-quran-50 p-6 text-slate-600">
-                جاري التحميل...
+                جارٍ التحميل...
               </div>
             ) : rewards.length === 0 ? (
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-slate-600">
-                لا توجد مكافآت مسجلة بعد.
+                لا توجد مكافآت مسجلة.
               </div>
             ) : (
               <div className="space-y-4">
@@ -234,7 +235,7 @@ export default function AdminRewardsManager() {
                       <div>
                         <div className="flex items-center gap-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-quran-50 text-2xl">
-                            {reward.icon || "🎁"}
+                            {reward.icon || "🏅"}
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold text-slate-900">
@@ -275,7 +276,7 @@ export default function AdminRewardsManager() {
 
         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
           <h3 className="text-xl font-semibold text-slate-900 mb-4">
-            طلبات الاستبدال المعلقة
+            طلبات الاستبدال
           </h3>
           {loading ? (
             <p className="text-sm text-slate-500">جارٍ التحميل...</p>
@@ -309,14 +310,11 @@ export default function AdminRewardsManager() {
                         {item.studentId?.firstName} {item.studentId?.lastName}
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-900">
-                        {item.rewardId?.name || "غير محددة"}
+                        {item.rewardId?.name || "غير محدد"}
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 text-sm">
                         <span
-                          className={`font-semibold ${
-                            redemptionStatusClass[item.status] ||
-                            "text-slate-700"
-                          }`}
+                          className={`font-semibold ${redemptionStatusClass[item.status] || "text-slate-700"}`}
                         >
                           {redemptionStatusMap[item.status] || item.status}
                         </span>

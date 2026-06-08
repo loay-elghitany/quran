@@ -2,7 +2,6 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const express = require("express");
-const fs = require("fs");
 const mongoose = require("mongoose");
 const app = require("./src/app");
 
@@ -52,35 +51,17 @@ const log = {
 };
 
 // ============================================================================
-// UPLOADS DIRECTORY SETUP
-// ============================================================================
-
-const uploadsDir = path.join(__dirname, "uploads");
-try {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  const subdirs = ["audio", "pdfs", "temp"];
-  subdirs.forEach((subdir) => {
-    fs.mkdirSync(path.join(uploadsDir, subdir), { recursive: true });
-  });
-  app.use("/uploads", express.static(uploadsDir));
-  log.success("Uploads directory configured");
-} catch (error) {
-  log.error(`Failed to setup uploads directory: ${error.message}`);
-  process.exit(1);
-}
-
-// ============================================================================
 // DATABASE CONNECTION
 // ============================================================================
-
 const connectDatabase = async () => {
   try {
     log.info("Connecting to MongoDB...");
 
+    // عدل السطر ده وخلي الـ dbName صريح جوه الـ Options
     await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      // Connection pool configuration for production
+      dbName: "quran", // 👈 السطر المنجد ده بيجبره يفتح فولدر قرآن فوراً
       maxPoolSize: NODE_ENV === "production" ? 50 : 10,
       minPoolSize: NODE_ENV === "production" ? 10 : 5,
       socketTimeoutMS: 45000,

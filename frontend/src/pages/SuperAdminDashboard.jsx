@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
 import PointsSystemGuide from "../components/PointsSystemGuide";
 import AnnouncementsBanner from "../components/AnnouncementsBanner";
@@ -20,6 +21,7 @@ export default function SuperAdminDashboard() {
   const [selectedParentChildren, setSelectedParentChildren] = useState([]);
   const [selectedGroupTeacher, setSelectedGroupTeacher] = useState("");
   const [selectedGroupStudents, setSelectedGroupStudents] = useState([]);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [userStatus, setUserStatus] = useState("");
 
   const [groupName, setGroupName] = useState("");
@@ -107,7 +109,7 @@ export default function SuperAdminDashboard() {
       setPassword("");
       setPhone("");
     } catch (error) {
-      setUserStatus("غير قادر على إنشاء المستخدم.");
+      setUserStatus(getApiErrorMessage(error, "غير قادر على إنشاء المستخدم."));
     }
   };
 
@@ -127,6 +129,10 @@ export default function SuperAdminDashboard() {
     );
   };
 
+  const removeSelectedGroupStudent = (studentId) => {
+    setSelectedGroupStudents((prev) => prev.filter((id) => id !== studentId));
+  };
+
   const handleCreateGroup = async (e) => {
     e.preventDefault();
     try {
@@ -139,7 +145,7 @@ export default function SuperAdminDashboard() {
       setGroupName("");
       setSelectedGroupStudents([]);
     } catch (error) {
-      setGroupStatus("غير قادر على إنشاء المجموعة.");
+      setGroupStatus(getApiErrorMessage(error, "غير قادر على إنشاء المجموعة."));
     }
   };
 
@@ -154,7 +160,9 @@ export default function SuperAdminDashboard() {
       setAnnouncementTitle("");
       setAnnouncementMessage("");
     } catch (error) {
-      setAnnouncementStatus("فشل نشر الإعلان. حاول مرة أخرى.");
+      setAnnouncementStatus(
+        getApiErrorMessage(error, "فشل نشر الإعلان. حاول مرة أخرى."),
+      );
     }
   };
 
@@ -163,6 +171,14 @@ export default function SuperAdminDashboard() {
         (student) => String(student.teacherId) === selectedGroupTeacher,
       )
     : [];
+
+  const filteredGroupStudentsBySearch = filteredGroupStudents.filter(
+    (student) => {
+      if (!studentSearchQuery || studentSearchQuery.trim() === "") return true;
+      const full = `${student.firstName} ${student.lastName}`.toLowerCase();
+      return full.includes(studentSearchQuery.trim().toLowerCase());
+    },
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 text-slate-800">
@@ -383,34 +399,66 @@ export default function SuperAdminDashboard() {
                   </label>
                   <div className="space-y-2 text-sm text-slate-700">
                     <span>الطلاب</span>
-                    <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4">
+                    <input
+                      type="text"
+                      value={studentSearchQuery}
+                      onChange={(e) => setStudentSearchQuery(e.target.value)}
+                      placeholder="ابحث عن اسم الطالب..."
+                      className="w-full mb-3 rounded-2xl border border-slate-300 px-4 py-2 text-sm"
+                    />
+
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {selectedGroupStudents
+                        .map((id) => students.find((s) => s._id === id))
+                        .filter(Boolean)
+                        .map((student) => (
+                          <span
+                            key={student._id}
+                            className="inline-flex items-center gap-2 rounded-full bg-quran-50 border border-quran-200 px-3 py-1 text-sm text-quran-800"
+                          >
+                            {student.firstName} {student.lastName}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeSelectedGroupStudent(student._id)
+                              }
+                              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-quran-600 text-white text-xs"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                    </div>
+
+                    <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 max-h-72 overflow-y-auto">
                       {selectedGroupTeacher === "" ? (
                         <p className="text-sm text-slate-500">
                           اختر معلمًا أولاً لرؤية الطلاب
                         </p>
-                      ) : filteredGroupStudents.length === 0 ? (
+                      ) : filteredGroupStudentsBySearch.length === 0 ? (
                         <p className="text-sm text-slate-500">
                           لا يوجد طلاب مرتبطين بهذا المعلم
                         </p>
                       ) : (
-                        filteredGroupStudents.map((student) => (
-                          <label
-                            key={student._id}
-                            className="inline-flex items-center gap-3"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedGroupStudents.includes(
-                                student._id,
-                              )}
-                              onChange={() =>
-                                handleToggleGroupStudent(student._id)
-                              }
-                              className="h-4 w-4 rounded border-slate-300 text-quran-600"
-                            />
-                            <span>{`${student.firstName} ${student.lastName}`}</span>
-                          </label>
-                        ))
+                        filteredGroupStudentsBySearch.map((student) => {
+                          const selected = selectedGroupStudents.includes(
+                            student._id,
+                          );
+                          const labelClass = `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm ${selected ? "border-quran-500 bg-quran-50" : "border-slate-200 bg-white"}`;
+                          return (
+                            <label key={student._id} className={labelClass}>
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() =>
+                                  handleToggleGroupStudent(student._id)
+                                }
+                                className="h-4 w-4 rounded border-slate-300 text-quran-600"
+                              />
+                              <span>{`${student.firstName} ${student.lastName}`}</span>
+                            </label>
+                          );
+                        })
                       )}
                     </div>
                   </div>

@@ -16,7 +16,9 @@ const getParentDashboard = async (req, res) => {
     });
 
     if (!parent) {
-      return res.status(404).json({ message: "الولي غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "الوالد غير موجود." });
     }
 
     const children = await Promise.all(
@@ -49,25 +51,31 @@ const getParentDashboard = async (req, res) => {
       children,
     });
   } catch (error) {
-    res.status(500).json({ message: "حدث خطأ في الخادم." });
+    console.error(error);
+    next(error);
   }
 };
 
-const getChildren = async (req, res) => {
+const getChildren = async (req, res, next) => {
   try {
     const children = await User.find({ _id: { $in: req.user.childrenIds } });
     res.json({ children });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-const getChildAssignments = async (req, res) => {
+const getChildAssignments = async (req, res, next) => {
   try {
     const { studentId } = req.params;
 
     if (!req.user.childrenIds.map((id) => id.toString()).includes(studentId)) {
-      return res.status(403).json({ message: "Access denied." });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "ليس لديك صلاحية لعرض بيانات هذا الطفل.",
+        });
     }
 
     const assignments = await Assignment.find({ student: studentId })
@@ -75,21 +83,28 @@ const getChildAssignments = async (req, res) => {
       .sort({ date: -1 });
     res.json({ assignments });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-const createLeaveRequest = async (req, res) => {
+const createLeaveRequest = async (req, res, next) => {
   try {
     const { studentId, date, reason } = req.body;
 
     if (!req.user.childrenIds.map((id) => id.toString()).includes(studentId)) {
-      return res.status(403).json({ message: "Access denied." });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "ليس لديك صلاحية لتقديم طلب غياب لهذا الطفل.",
+        });
     }
 
     const student = await User.findById(studentId);
     if (!student || student.role !== "Student") {
-      return res.status(400).json({ message: "Invalid student." });
+      return res
+        .status(400)
+        .json({ success: false, message: "الطالب المحدد غير صالح." });
     }
 
     const leaveRequest = new LeaveRequest({
@@ -101,12 +116,14 @@ const createLeaveRequest = async (req, res) => {
     });
 
     const savedLeaveRequest = await leaveRequest.save();
-    res.status(201).json({
-      message: "Leave request submitted successfully.",
-      leaveRequest: savedLeaveRequest,
-    });
+    res
+      .status(201)
+      .json({
+        message: "تم إرسال طلب الغياب بنجاح.",
+        leaveRequest: savedLeaveRequest,
+      });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 

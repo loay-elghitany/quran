@@ -38,7 +38,9 @@ export default function LoginPage() {
       navigate(route);
     } catch (err) {
       setError(
-        err.response?.data?.message || "Login failed. Please try again.",
+        err.response?.data?.message ||
+          err.message ||
+          "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
       );
     } finally {
       setLoading(false);
@@ -51,9 +53,9 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-quran-700 mb-2 font-kufi">
-            مرحبا بعودتك
+            مرحبًا بعودتك
           </h1>
-          <p className="text-gray-600">سجل الدخول لمواصلة رحلتك في القراءة</p>
+          <p className="text-gray-600">سجّل الدخول للوصول إلى حسابك</p>
         </div>
 
         {/* Form */}
@@ -93,7 +95,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="●●●●●●●●"
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-quran-500 focus:border-transparent"
             />
@@ -112,7 +114,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-quran-600 text-white font-bold rounded-lg hover:bg-quran-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
           </button>
         </form>
 

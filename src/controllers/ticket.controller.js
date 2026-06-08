@@ -1,6 +1,6 @@
 const Ticket = require("../models/ticket.model");
 
-exports.createTicket = async (req, res) => {
+exports.createTicket = async (req, res, next) => {
   try {
     const payload = req.body || {};
     const ticket = new Ticket({
@@ -18,21 +18,33 @@ exports.createTicket = async (req, res) => {
     res.status(201).json({ ticket });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to create ticket" });
+    next(err);
   }
 };
 
-exports.listTickets = async (req, res) => {
+exports.listTickets = async (req, res, next) => {
   try {
     const tickets = await Ticket.find().sort({ createdAt: -1 });
     res.json({ complaints: tickets });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to list tickets" });
+    next(err);
   }
 };
 
-exports.updateTicketStatus = async (req, res) => {
+exports.getMyTickets = async (req, res, next) => {
+  try {
+    const userTickets = await Ticket.find({ senderId: req.user?._id }).sort({
+      createdAt: -1,
+    });
+    res.status(200).json({ success: true, tickets: userTickets });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+exports.updateTicketStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     const updated = await Ticket.findByIdAndUpdate(
@@ -40,10 +52,14 @@ exports.updateTicketStatus = async (req, res) => {
       { status },
       { new: true },
     );
-    if (!updated) return res.status(404).json({ message: "Not found" });
+    if (!updated)
+      return res.status(404).json({
+        success: false,
+        message: "عذراً، التذكرة المطلوبة غير موجودة.",
+      });
     res.json({ ticket: updated });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to update status" });
+    next(err);
   }
 };

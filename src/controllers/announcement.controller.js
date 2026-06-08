@@ -1,11 +1,13 @@
-const Announcement = require("../models/announcement.model");
+﻿const Announcement = require("../models/announcement.model");
 
 const createAnnouncement = async (req, res) => {
   try {
     const { title, message } = req.body;
 
     if (!title || !message) {
-      return res.status(400).json({ message: "العنوان والرسالة مطلوبان." });
+      return res
+        .status(400)
+        .json({ success: false, message: "العنوان والرسالة مطلوبان." });
     }
 
     const announcement = new Announcement({ title, message });
@@ -17,7 +19,12 @@ const createAnnouncement = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ في الخادم." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -29,7 +36,12 @@ const getAnnouncements = async (req, res) => {
     res.json({ announcements });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ في تحميل الإعلانات." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 

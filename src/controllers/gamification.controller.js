@@ -1,4 +1,4 @@
-const Badge = require("../models/badge.model");
+﻿const Badge = require("../models/badge.model");
 const Challenge = require("../models/challenge.model");
 const StoreConfig = require("../models/storeConfig.model");
 const Group = require("../models/group.model");
@@ -10,12 +10,14 @@ const createBadge = async (req, res) => {
     const { name, icon, description, pointsReward, maxPerMonth } = req.body;
 
     if (!name) {
-      return res.status(400).json({ message: "اسم الوسام مطلوب." });
+      return res
+        .status(400)
+        .json({ success: false, message: "اسم الوسام مطلوب." });
     }
 
     const badge = new Badge({
       name,
-      icon: icon || "🏆",
+      icon: icon || "default-icon",
       description: description || "",
       pointsReward: pointsReward || 0,
       maxPerMonth: maxPerMonth || 5,
@@ -25,7 +27,12 @@ const createBadge = async (req, res) => {
     res.status(201).json({ message: "تم إنشاء الوسام بنجاح.", badge: saved });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء إنشاء الوسام." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -35,7 +42,12 @@ const getBadges = async (req, res) => {
     res.json({ badges });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب الأوسمة." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -46,7 +58,9 @@ const updateBadge = async (req, res) => {
 
     const badge = await Badge.findById(id);
     if (!badge) {
-      return res.status(404).json({ message: "الوسام غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "الوسام غير موجود." });
     }
 
     badge.name = name || badge.name;
@@ -59,7 +73,12 @@ const updateBadge = async (req, res) => {
     res.json({ message: "تم تحديث الوسام بنجاح.", badge: updated });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء تحديث الوسام." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -69,13 +88,20 @@ const deleteBadge = async (req, res) => {
     const deleted = await Badge.findByIdAndDelete(id);
 
     if (!deleted) {
-      return res.status(404).json({ message: "الوسام غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "الوسام غير موجود." });
     }
 
     res.json({ message: "تم حذف الوسام بنجاح." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء حذف الوسام." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -87,14 +113,19 @@ const createChallenge = async (req, res) => {
       req.body;
 
     if (!title || !groupId || !targetPoints) {
-      return res.status(400).json({
-        message: "العنوان والمجموعة والنقاط المستهدفة مطلوبة.",
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "العنوان والمجموعة والحد الأقصى للنقاط مطلوبون.",
+        });
     }
 
     const group = await Group.findById(groupId);
     if (!group) {
-      return res.status(404).json({ message: "المجموعة غير موجودة." });
+      return res
+        .status(404)
+        .json({ success: false, message: "المجموعة غير موجودة." });
     }
 
     const challenge = new Challenge({
@@ -111,7 +142,12 @@ const createChallenge = async (req, res) => {
       .json({ message: "تم إنشاء التحدي بنجاح.", challenge: saved });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء إنشاء التحدي." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -123,7 +159,12 @@ const getChallenges = async (req, res) => {
     res.json({ challenges });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب التحديات." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -136,7 +177,12 @@ const getChallengesByGroup = async (req, res) => {
     res.json({ challenges });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب تحديات المجموعة." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -154,7 +200,9 @@ const updateChallenge = async (req, res) => {
 
     const challenge = await Challenge.findById(id);
     if (!challenge) {
-      return res.status(404).json({ message: "التحدي غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "التحدي غير موجود." });
     }
 
     challenge.title = title || challenge.title;
@@ -175,7 +223,12 @@ const updateChallenge = async (req, res) => {
     res.json({ message: "تم تحديث التحدي بنجاح.", challenge: updated });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء تحديث التحدي." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -185,13 +238,20 @@ const deleteChallenge = async (req, res) => {
     const deleted = await Challenge.findByIdAndDelete(id);
 
     if (!deleted) {
-      return res.status(404).json({ message: "التحدي غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "التحدي غير موجود." });
     }
 
     res.json({ message: "تم حذف التحدي بنجاح." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء حذف التحدي." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -206,12 +266,12 @@ const getOrCreateMysteryBoxConfig = async (req, res) => {
         name: "Mystery Box",
         itemType: "MysteryBox",
         cost: 100,
-        description: "افتح صندوق الأسرار واكسب مفاجأة!",
+        description: "افتح صندوق الأسرار واكشف مفاجأة!",
         possibleRewards: [
           { text: "10 نقاط", probability: 0.25 },
           { text: "50 نقطة", probability: 0.2 },
           { text: "100 نقطة", probability: 0.15 },
-          { text: "قلم مجاني", probability: 0.2 },
+          { text: "قلم معدني", probability: 0.2 },
           { text: "كتاب قرآن", probability: 0.2 },
         ],
         isActive: true,
@@ -224,7 +284,7 @@ const getOrCreateMysteryBoxConfig = async (req, res) => {
     console.error(error);
     res
       .status(500)
-      .json({ message: "حدث خطأ أثناء جلب إعدادات صندوق الأسرار." });
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 
@@ -253,7 +313,7 @@ const updateMysteryBoxConfig = async (req, res) => {
     console.error(error);
     res
       .status(500)
-      .json({ message: "حدث خطأ أثناء تحديث إعدادات صندوق الأسرار." });
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 

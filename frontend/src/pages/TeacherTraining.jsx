@@ -23,7 +23,7 @@ export default function TeacherTraining() {
         setCurriculums(resp.data.curriculums || []);
       } catch (err) {
         console.error(err);
-        setMessage("فشل تحميل الحقيبات التدريبية.");
+        setMessage("فشل تحميل الحقب التدريبية.");
       } finally {
         setLoading(false);
       }
@@ -80,7 +80,9 @@ export default function TeacherTraining() {
       setMessage(resp.data.message || "تم إتمام الدرس.");
     } catch (err) {
       console.error(err);
-      setMessage(err.response?.data?.message || "فشل إتمام الدرس.");
+      setMessage(
+        err.response?.data?.message || err.message || "فشل إتمام الدرس.",
+      );
     } finally {
       setBusy(false);
     }
@@ -96,8 +98,8 @@ export default function TeacherTraining() {
         <header className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
           <h1 className="text-3xl font-semibold">الحقيبة التدريبية للمعلمين</h1>
           <p className="mt-2 text-slate-600">
-            تابع مسارك التدريبي، اطلع على الدرس الحالي وسجل إتمامه لتحصل على
-            نقاط جائزة.
+            تابع مسارك التدريبي ليتبع على الدرس الحالي وسجل إنجازه للتحصل على
+            نقاط جيدة.
           </p>
         </header>
 
@@ -108,7 +110,9 @@ export default function TeacherTraining() {
         )}
 
         <section className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
-          <label className="block text-sm text-slate-700">اختر الحقيبة</label>
+          <label className="block text-sm text-slate-700">
+            اختر الحقيبة التدريبية
+          </label>
           <select
             className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
             value={selectedCurriculumId}
@@ -163,7 +167,7 @@ export default function TeacherTraining() {
                   disabled={busy}
                   className="rounded-3xl bg-quran-700 px-6 py-2 text-sm font-semibold text-white hover:bg-quran-800 disabled:opacity-50"
                 >
-                  إتمام الدرس (احصل على 50 نقطة)
+                  إتمام الدرس (يحصل على 50 نقطة)
                 </button>
                 <div className="text-sm text-slate-700">
                   الدرس {progress?.currentLessonIndex + 1} من{" "}
@@ -173,7 +177,7 @@ export default function TeacherTraining() {
             </div>
           ) : (
             <div className="py-10 text-center text-slate-600">
-              لا يوجد درس حالي لهذه الحقيبة.
+              لا يوجد درس حالياً لهذه الحقيبة.
             </div>
           )}
         </section>

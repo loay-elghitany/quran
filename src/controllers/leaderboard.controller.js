@@ -1,4 +1,4 @@
-const Evaluation = require("../models/evaluation.model");
+﻿const Evaluation = require("../models/evaluation.model");
 
 const getTopStudents = async (req, res) => {
   try {
@@ -34,7 +34,12 @@ const getTopStudents = async (req, res) => {
     res.json({ leaderboard });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ في الحصول على قائمة المتصدرين." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -88,7 +93,7 @@ const getTopGroups = async (req, res) => {
     console.error(error);
     res
       .status(500)
-      .json({ message: "حدث خطأ في الحصول على قائمة أفضل الحلقات." });
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 
@@ -105,7 +110,12 @@ const getTopTeachers = async (req, res) => {
     res.json({ leaderboard: teachers });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ في الحصول على قائمة المعلمين." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 

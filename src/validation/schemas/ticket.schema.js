@@ -7,14 +7,21 @@ const ticketCreateSchema = Joi.object({
   senderEmail: Joi.string().email().optional().allow(""),
   isAnonymous: Joi.boolean().optional(),
   type: Joi.string()
-    .valid("Complaint", "Feedback", "Request", "Other")
+    .valid(
+      "Complaint",
+      "Suggestion",
+      "Technical_Issue",
+      "Other",
+      "Feedback",
+      "Request",
+    )
     .optional(),
   priority: Joi.string().valid("Low", "Medium", "High").optional(),
 });
 
 const ticketUpdateStatusSchema = Joi.object({
   status: Joi.string()
-    .valid("Pending", "Open", "In Progress", "Resolved", "Closed")
+    .valid("Pending", "In_Progress", "In Progress", "Resolved", "Closed")
     .required(),
 });
 

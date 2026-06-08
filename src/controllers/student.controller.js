@@ -20,7 +20,9 @@ const getStudentDashboard = async (req, res) => {
       });
 
     if (!student) {
-      return res.status(404).json({ message: "الطالب غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "الطالب غير موجود." });
     }
 
     const group = await Group.findOne({ studentIds: student._id }).populate(
@@ -72,7 +74,12 @@ const getStudentDashboard = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ في الخادم." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -80,12 +87,16 @@ const updateStudentAvatar = async (req, res) => {
   try {
     const { avatar } = req.body;
     if (!avatar || typeof avatar !== "string") {
-      return res.status(400).json({ message: "يرجى اختيار صورة رمزية صحيحة." });
+      return res
+        .status(400)
+        .json({ success: false, message: "يرجى تحديد صورة رمزية صالحة." });
     }
 
     const student = await User.findById(req.user._id);
     if (!student) {
-      return res.status(404).json({ message: "الطالب غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "الطالب غير موجود." });
     }
 
     const lockedAvatarThresholds = {
@@ -96,7 +107,8 @@ const updateStudentAvatar = async (req, res) => {
     const requiredPoints = lockedAvatarThresholds[avatar] || 0;
     if (student.points < requiredPoints) {
       return res.status(403).json({
-        message: `هذا الآفاتار خاص، ويُفتح عندما تصل إلى ${requiredPoints} نقطة.`,
+        success: false,
+        message: `هذا الآفتار محظور ويتطلب ${requiredPoints} نقطة.`,
       });
     }
 
@@ -108,7 +120,12 @@ const updateStudentAvatar = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء تحديث الصورة الرمزية." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
@@ -116,7 +133,9 @@ const getStudentChallenges = async (req, res) => {
   try {
     const student = await User.findById(req.user._id).select("points");
     if (!student) {
-      return res.status(404).json({ message: "الطالب غير موجود." });
+      return res
+        .status(404)
+        .json({ success: false, message: "الطالب غير موجود." });
     }
 
     const group = await Group.findOne({ studentIds: student._id });
@@ -147,32 +166,41 @@ const getStudentChallenges = async (req, res) => {
     res.json({ challenges: mappedChallenges, totalPoints });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب تحديات المجموعة." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
   }
 };
 
-const getMyAssignments = async (req, res) => {
+const getMyAssignments = async (req, res, next) => {
   try {
     const assignments = await Assignment.find({ student: req.user._id })
       .populate("teacher")
       .sort({ date: -1 });
     res.json({ assignments });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-const getAssignmentRead = async (req, res) => {
+const getAssignmentRead = async (req, res, next) => {
   try {
     const { id } = req.params;
     const assignment = await Assignment.findById(id).populate("teacher");
 
     if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "التكليف المطلوب غير موجود." });
     }
 
     if (assignment.student.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Access denied." });
+      return res
+        .status(403)
+        .json({ success: false, message: "ليس لديك صلاحية لعرض هذا التكليف." });
     }
 
     const newMemorizationVerses = fetchVerses(
@@ -193,11 +221,11 @@ const getAssignmentRead = async (req, res) => {
 
     res.json({ assignment: assignmentWithVerses });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-const getQuizzes = async (req, res) => {
+const getQuizzes = async (req, res, next) => {
   try {
     const quizzes = await ContentQuiz.find();
 
@@ -212,18 +240,21 @@ const getQuizzes = async (req, res) => {
 
     res.json({ quizzes: sanitizedQuizzes });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    console.error(error);
+    next(error);
   }
 };
 
-const submitQuiz = async (req, res) => {
+const submitQuiz = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { answers } = req.body;
 
     const quiz = await ContentQuiz.findById(id);
     if (!quiz) {
-      return res.status(404).json({ message: "Quiz not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "المحتوى المطلوب غير موجود." });
     }
 
     let score = 0;
@@ -234,13 +265,13 @@ const submitQuiz = async (req, res) => {
     }
 
     res.json({
-      message: "Quiz submitted successfully.",
+      message: "تم إرسال الاختبار بنجاح.",
       score,
       totalQuestions: quiz.questions.length,
       percentage: Math.round((score / quiz.questions.length) * 100),
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 

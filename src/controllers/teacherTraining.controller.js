@@ -1,4 +1,4 @@
-const Curriculum = require("../models/curriculum.model");
+﻿const Curriculum = require("../models/curriculum.model");
 const TeacherProgress = require("../models/teacherProgress.model");
 const User = require("../models/user.model");
 
@@ -10,7 +10,13 @@ const getTeacherCurriculums = async (req, res) => {
     res.json({ curriculums });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب المناهج التدريبية." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message:
+          "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط§ظ„ظ…ظ†ط§ظ‡ط¬ ط§ظ„طھط¯ط±ظٹط¨ظٹط©.",
+      });
   }
 };
 
@@ -21,7 +27,12 @@ const getCurrentForTeacher = async (req, res) => {
 
     const curriculum = await Curriculum.findById(curriculumId);
     if (!curriculum || curriculum.target !== "teacher") {
-      return res.status(404).json({ message: "المنهج التدريبي غير موجود." });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "ط§ظ„ظ…ظ†ظ‡ط¬ ط§ظ„طھط¯ط±ظٹط¨ظٹ ط؛ظٹط± ظ…ظˆط¬ظˆط¯.",
+        });
     }
 
     let progress = await TeacherProgress.findOne({ teacherId, curriculumId });
@@ -45,7 +56,12 @@ const getCurrentForTeacher = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب حالة التدريب." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط­ط§ظ„ط© ط§ظ„طھط¯ط±ظٹط¨.",
+      });
   }
 };
 
@@ -56,7 +72,12 @@ const completeLesson = async (req, res) => {
 
     const curriculum = await Curriculum.findById(curriculumId);
     if (!curriculum || curriculum.target !== "teacher") {
-      return res.status(404).json({ message: "المنهج التدريبي غير موجود." });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "ط§ظ„ظ…ظ†ظ‡ط¬ ط§ظ„طھط¯ط±ظٹط¨ظٹ ط؛ظٹط± ظ…ظˆط¬ظˆط¯.",
+        });
     }
 
     let progress = await TeacherProgress.findOne({ teacherId, curriculumId });
@@ -69,7 +90,11 @@ const completeLesson = async (req, res) => {
       await progress.save();
       return res
         .status(200)
-        .json({ message: "لقد أكملت الحقيبة التدريبية بالفعل.", progress });
+        .json({
+          message:
+            "ظ„ظ‚ط¯ ط£ظƒظ…ظ„طھ ط§ظ„ط­ظ‚ظٹط¨ط© ط§ظ„طھط¯ط±ظٹط¨ظٹط© ط¨ط§ظ„ظپط¹ظ„.",
+          progress,
+        });
     }
 
     progress.currentLessonIndex += 1;
@@ -82,10 +107,18 @@ const completeLesson = async (req, res) => {
     // reward teacher
     await User.findByIdAndUpdate(teacherId, { $inc: { points: 50 } });
 
-    res.json({ message: "تم إتمام الدرس وسُجّلت 50 نقطة!", progress });
+    res.json({
+      message: "طھظ… ط¥طھظ…ط§ظ… ط§ظ„ط¯ط±ط³ ظˆط³ظڈط¬ظ‘ظ„طھ 50 ظ†ظ‚ط·ط©!",
+      progress,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء إتمام الدرس." });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¥طھظ…ط§ظ… ط§ظ„ط¯ط±ط³.",
+      });
   }
 };
 

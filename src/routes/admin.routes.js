@@ -1,10 +1,9 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const {
   createUser,
   createGroup,
+  updateGroup,
   getUsers,
   getGroups,
 } = require("../controllers/superadmin.controller");
@@ -63,21 +62,10 @@ const {
   idParamsSchema,
   groupIdParamsSchema,
 } = require("../validation/schemas/admin.schema");
-
-const pdfUploadPath = path.join(__dirname, "../uploads/pdfs");
-fs.mkdirSync(pdfUploadPath, { recursive: true });
-
-const pdfStorage = multer.diskStorage({
-  destination: pdfUploadPath,
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const extension = path.extname(file.originalname) || ".pdf";
-    cb(null, `lesson-${timestamp}${extension}`);
-  },
-});
+const { cloudinaryPdfStorage } = require("../config/cloudinary");
 
 const pdfUpload = multer({
-  storage: pdfStorage,
+  storage: cloudinaryPdfStorage,
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === "application/pdf") {
@@ -97,6 +85,11 @@ router.get("/users", getUsers);
 router.get("/groups", getGroups);
 router.post("/users", createUser);
 router.post("/groups", createGroup);
+router.put(
+  "/groups/:groupId",
+  validateParams(groupIdParamsSchema),
+  updateGroup,
+);
 router.post("/announcements", createAnnouncement);
 router.post("/rewards", validateBody(rewardCreateSchema), createReward);
 router.get("/rewards", getRewards);

@@ -4,6 +4,8 @@ const objectIdSchema = Joi.string()
   .pattern(/^[a-fA-F0-9]{24}$/)
   .required();
 
+const ApiError = require("../utils/apiError");
+
 const validateBody = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body, {
     abortEarly: false,
@@ -12,10 +14,13 @@ const validateBody = (schema) => (req, res, next) => {
 
   if (error) {
     const details = error.details.map((detail) => detail.message);
-    return res.status(400).json({
-      message: "Validation error.",
-      details,
-    });
+    return next(
+      new ApiError(
+        "البيانات المرسلة غير صحيحة. يرجى التحقق من المعلومات وإعادة المحاولة.",
+        400,
+        details,
+      ),
+    );
   }
 
   req.body = value;
@@ -30,10 +35,13 @@ const validateParams = (schema) => (req, res, next) => {
 
   if (error) {
     const details = error.details.map((detail) => detail.message);
-    return res.status(400).json({
-      message: "Validation error.",
-      details,
-    });
+    return next(
+      new ApiError(
+        "البيانات المرسلة غير صحيحة. يرجى التحقق من المعلومات وإعادة المحاولة.",
+        400,
+        details,
+      ),
+    );
   }
 
   req.params = value;

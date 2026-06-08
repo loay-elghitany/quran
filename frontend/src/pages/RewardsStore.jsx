@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
 
 const redemptionStatusMap = {
@@ -20,14 +21,14 @@ function RewardCard({ reward, onRedeem, disabled }) {
     <div className="rounded-3xl border border-quran-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-quran-50 text-3xl">
-          {reward.icon || "🎁"}
+          {reward.icon || "🏅"}
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900">
             {reward.name}
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            {reward.description || "مكافأة خاصة بالطلاب"}
+            {reward.description || "وصف المكافأة"}
           </p>
         </div>
       </div>
@@ -99,7 +100,7 @@ export default function RewardsStore() {
         }
       } catch (error) {
         console.error(error);
-        setMessage("حدث خطأ أثناء تحميل بيانات المكافآت.");
+        setMessage("فشل تحميل بيانات المكافآت.");
       } finally {
         setLoading(false);
       }
@@ -132,11 +133,11 @@ export default function RewardsStore() {
         origin: { y: 0.6 },
         colors: ["#FFD700", "#FF8C00", "#32CD32", "#1E90FF"],
       });
-      setMessage("ألف مبروك! تم طلب هديتك بنجاح 🎁");
+      setMessage("رائع! تم إرسال طلبك بنجاح.");
       refreshStudentData();
     } catch (error) {
       console.error(error);
-      setMessage(error.response?.data?.message || "فشل طلب الاستبدال.");
+      setMessage(getApiErrorMessage(error, "فشل طلب الاستبدال."));
     }
   };
 
@@ -155,7 +156,7 @@ export default function RewardsStore() {
       setRewards(response.data.rewards || []);
     } catch (error) {
       console.error(error);
-      setMessage(error.response?.data?.message || "فشل حفظ المكافأة.");
+      setMessage(getApiErrorMessage(error, "فشل حفظ المكافأة."));
     }
   };
 
@@ -167,7 +168,7 @@ export default function RewardsStore() {
       setMessage("تم تحديث حالة الطلب.");
     } catch (error) {
       console.error(error);
-      setMessage(error.response?.data?.message || "فشل تحديث الحالة.");
+      setMessage(getApiErrorMessage(error, "فشل تحديث الحالة."));
     }
   };
 
@@ -177,8 +178,7 @@ export default function RewardsStore() {
       <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm">
         <h1 className="text-3xl font-semibold text-slate-900">متجر المكافآت</h1>
         <p className="mt-2 text-slate-600">
-          استخدم النقاط المكتسبة لطلب المكافآت أو إدارة المكافآت للمعلمين
-          والإداريين.
+          استعرض النقاط المتاحة والمكافآت المتوفرة واطلب الاستبدال بسهولة.
         </p>
       </div>
 
@@ -197,7 +197,7 @@ export default function RewardsStore() {
             </p>
           </div>
           <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">النقاط الإجمالية</p>
+            <p className="text-sm text-slate-500">إجمالي النقاط</p>
             <p className="mt-3 text-4xl font-semibold text-quran-700">
               {totalPoints}
             </p>
@@ -213,7 +213,7 @@ export default function RewardsStore() {
 
       {loading ? (
         <div className="rounded-3xl border border-quran-200 bg-quran-50 p-6 shadow-sm">
-          جاري التحميل...
+          جارٍ التحميل...
         </div>
       ) : userRole === "Student" ||
         userRole === "SuperAdmin" ||
@@ -225,7 +225,7 @@ export default function RewardsStore() {
             </h2>
             <div className="mt-5 grid gap-4">
               {rewards.length === 0 ? (
-                <p className="text-slate-600">لا توجد مكافآت مسجلة.</p>
+                <p className="text-slate-600">لا توجد مكافآت متاحة.</p>
               ) : (
                 rewards.map((reward) => (
                   <RewardCard
@@ -245,7 +245,7 @@ export default function RewardsStore() {
           {userRole === "Student" ? (
             <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-slate-900">
-                طلباتك الحالية
+                طلباتي الحالية
               </h2>
               <div className="mt-5 space-y-4">
                 {redemptions.length === 0 ? (
@@ -262,10 +262,7 @@ export default function RewardsStore() {
                       <p className="text-sm text-slate-500">
                         الحالة:{" "}
                         <span
-                          className={`font-semibold ${
-                            redemptionStatusClass[item.status] ||
-                            "text-slate-700"
-                          }`}
+                          className={`font-semibold ${redemptionStatusClass[item.status] || "text-slate-700"}`}
                         >
                           {redemptionStatusMap[item.status] || item.status}
                         </span>
@@ -301,10 +298,7 @@ export default function RewardsStore() {
                       <p className="mt-2 text-sm text-slate-500">
                         الحالة:{" "}
                         <span
-                          className={`font-semibold ${
-                            redemptionStatusClass[item.status] ||
-                            "text-slate-700"
-                          }`}
+                          className={`font-semibold ${redemptionStatusClass[item.status] || "text-slate-700"}`}
                         >
                           {redemptionStatusMap[item.status] || item.status}
                         </span>
@@ -338,9 +332,7 @@ export default function RewardsStore() {
         </div>
       ) : (
         <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm">
-          <p className="text-slate-600">
-            هذه الصفحة متاحة للطلاب والإداريين فقط.
-          </p>
+          <p className="text-slate-600">هذه الصفحة مخصصة للطلاب والمسؤولين.</p>
         </div>
       )}
 

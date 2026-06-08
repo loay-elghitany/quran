@@ -6,7 +6,7 @@ const LeaveRequest = require("../models/leaverequest.model");
 const User = require("../models/user.model");
 const notificationService = require("../services/notification.service");
 
-const getStudents = async (req, res) => {
+const getStudents = async (req, res, next) => {
   try {
     const groups = await Group.find({ teacherId: req.user._id }).populate(
       "studentIds",
@@ -15,7 +15,7 @@ const getStudents = async (req, res) => {
     const students = groups.flatMap((group) => group.studentIds);
     res.json({ students });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
@@ -27,11 +27,60 @@ const getTeacherDashboard = async (req, res) => {
 
     res.json({ groups });
   } catch (error) {
-    res.status(500).json({ message: "حدث خطأ في الخادم." });
+    res
+      .status(500)
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 
-const createAssignment = async (req, res) => {
+const getTeacherStudentsWithEvaluations = async (req, res) => {
+  try {
+    const groups = await Group.find({ teacherId: req.user._id }).populate(
+      "studentIds",
+      "firstName lastName email phone points",
+    );
+
+    const enrichedGroups = await Promise.all(
+      groups.map(async (group) => {
+        const students = await Promise.all(
+          group.studentIds.map(async (student) => {
+            const evaluations = await Evaluation.find({
+              studentId: student._id,
+            })
+              .sort({ date: -1 })
+              .select(
+                "date attendance earnedPoints newMemorization revision mistakes grade notes audioNote groupId",
+              )
+              .populate("groupId", "name");
+
+            return {
+              ...student.toObject(),
+              evaluations,
+            };
+          }),
+        );
+
+        return {
+          _id: group._id,
+          name: group.name,
+          students,
+        };
+      }),
+    );
+
+    res.status(200).json({ success: true, groups: enrichedGroups });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+      });
+  }
+};
+
+const createAssignment = async (req, res, next) => {
   try {
     const {
       student,
@@ -67,15 +116,15 @@ const createAssignment = async (req, res) => {
     }
 
     res.status(201).json({
-      message: "Assignment created successfully.",
+      message: "تم إنشاء التكليف بنجاح.",
       assignment: savedAssignment,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-const getLeaveRequests = async (req, res) => {
+const getLeaveRequests = async (req, res, next) => {
   try {
     const leaveRequests = await LeaveRequest.find({
       teacher: req.user._id,
@@ -83,11 +132,11 @@ const getLeaveRequests = async (req, res) => {
     }).populate("student parent");
     res.json({ leaveRequests });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-const createEvaluation = async (req, res) => {
+const createEvaluation = async (req, res, next) => {
   try {
     const {
       studentId,
@@ -174,7 +223,9 @@ const createEvaluation = async (req, res) => {
       evaluation: savedEvaluation,
     });
   } catch (error) {
-    res.status(500).json({ message: "حدث خطأ في الخادم." });
+    res
+      .status(500)
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 
@@ -184,7 +235,9 @@ const getBadges = async (req, res) => {
     res.json({ badges });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب الأوسمة." });
+    res
+      .status(500)
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 
@@ -236,7 +289,9 @@ const awardBadge = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "حدث خطأ أثناء منح الوسام." });
+    res
+      .status(500)
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 
@@ -257,17 +312,22 @@ const getEvaluationHistory = async (req, res) => {
 
     res.json({ evaluations });
   } catch (error) {
-    res.status(500).json({ message: "حدث خطأ في الخادم." });
+    res
+      .status(500)
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };
 
-const updateLeaveRequestStatus = async (req, res) => {
+const updateLeaveRequestStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
     if (!["Approved", "Rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status." });
+      return res.status(400).json({
+        success: false,
+        message: "عذراً، الحالة المختارة غير صحيحة.",
+      });
     }
 
     const leaveRequest = await LeaveRequest.findByIdAndUpdate(
@@ -276,21 +336,25 @@ const updateLeaveRequestStatus = async (req, res) => {
       { new: true },
     );
     if (!leaveRequest) {
-      return res.status(404).json({ message: "Leave request not found." });
+      return res.status(404).json({
+        success: false,
+        message: "عذراً، طلب الإجازة غير موجود.",
+      });
     }
 
     res.json({
-      message: "Leave request updated successfully.",
+      message: "تم تحديث طلب الإجازة بنجاح.",
       leaveRequest,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
 module.exports = {
   getStudents,
   getTeacherDashboard,
+  getTeacherStudentsWithEvaluations,
   getBadges,
   awardBadge,
   createAssignment,

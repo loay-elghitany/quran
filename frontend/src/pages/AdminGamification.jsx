@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
 
 export default function AdminGamification() {
@@ -11,7 +12,7 @@ export default function AdminGamification() {
   const [badges, setBadges] = useState([]);
   const [newBadge, setNewBadge] = useState({
     name: "",
-    icon: "🏆",
+    icon: "🏅",
     description: "",
     pointsReward: 0,
     maxPerMonth: 5,
@@ -58,7 +59,7 @@ export default function AdminGamification() {
       const response = await api.get("/admin/badges");
       setBadges(response.data.badges || []);
     } catch (error) {
-      console.error("فشل تحميل الأوسمة:", error);
+      console.error("Failed to load badges:", error);
     }
   };
 
@@ -67,7 +68,7 @@ export default function AdminGamification() {
       const response = await api.get("/admin/challenges");
       setChallenges(response.data.challenges || []);
     } catch (error) {
-      console.error("فشل تحميل التحديات:", error);
+      console.error("Failed to load challenges:", error);
     }
   };
 
@@ -76,7 +77,7 @@ export default function AdminGamification() {
       const response = await api.get("/admin/groups");
       setGroups(response.data.groups || []);
     } catch (error) {
-      console.error("فشل تحميل المجموعات:", error);
+      console.error("Failed to load groups:", error);
     }
   };
 
@@ -92,7 +93,7 @@ export default function AdminGamification() {
         isActive: config.isActive,
       });
     } catch (error) {
-      console.error("فشل تحميل إعدادات صندوق الأسرار:", error);
+      console.error("Failed to load mystery box config:", error);
     }
   };
 
@@ -104,7 +105,7 @@ export default function AdminGamification() {
       setBadgeMessage("تم إنشاء الوسام بنجاح!");
       setNewBadge({
         name: "",
-        icon: "🏆",
+        icon: "🏅",
         description: "",
         pointsReward: 0,
         maxPerMonth: 5,
@@ -112,7 +113,7 @@ export default function AdminGamification() {
       loadBadges();
       setTimeout(() => setBadgeMessage(""), 3000);
     } catch (error) {
-      setBadgeMessage(error.response?.data?.message || "فشل إنشاء الوسام.");
+      setBadgeMessage(getApiErrorMessage(error, "فشل إنشاء الوسام."));
     }
   };
 
@@ -124,7 +125,7 @@ export default function AdminGamification() {
       loadBadges();
       setTimeout(() => setBadgeMessage(""), 3000);
     } catch (error) {
-      setBadgeMessage(error.response?.data?.message || "فشل حذف الوسام.");
+      setBadgeMessage(getApiErrorMessage(error, "فشل حذف الوسام."));
     }
   };
 
@@ -144,7 +145,7 @@ export default function AdminGamification() {
       loadChallenges();
       setTimeout(() => setChallengeMessage(""), 3000);
     } catch (error) {
-      setChallengeMessage(error.response?.data?.message || "فشل إنشاء التحدي.");
+      setChallengeMessage(getApiErrorMessage(error, "فشل إنشاء التحدي."));
     }
   };
 
@@ -156,7 +157,7 @@ export default function AdminGamification() {
       loadChallenges();
       setTimeout(() => setChallengeMessage(""), 3000);
     } catch (error) {
-      setChallengeMessage(error.response?.data?.message || "فشل حذف التحدي.");
+      setChallengeMessage(getApiErrorMessage(error, "فشل حذف التحدي."));
     }
   };
 
@@ -192,7 +193,7 @@ export default function AdminGamification() {
       setTimeout(() => setMysteryBoxMessage(""), 3000);
     } catch (error) {
       setMysteryBoxMessage(
-        error.response?.data?.message || "فشل تحديث صندوق الأسرار.",
+        getApiErrorMessage(error, "فشل تحديث صندوق الأسرار."),
       );
     }
   };
@@ -206,7 +207,7 @@ export default function AdminGamification() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <header className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200 mb-8">
           <h1 className="text-4xl font-semibold text-slate-900">
-            إدارة المقامرة والألعاب
+            إدارة المكافآت والألعاب
           </h1>
           <p className="mt-2 text-slate-600">
             إدارة الأوسمة والتحديات وصندوق الأسرار
@@ -320,7 +321,7 @@ export default function AdminGamification() {
 
             <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
               <h2 className="text-2xl font-semibold text-slate-900 mb-6">
-                الأوسمة الموجودة
+                الأوسمة الحالية
               </h2>
               <div className="space-y-4">
                 {badges.map((badge) => (
@@ -403,7 +404,7 @@ export default function AdminGamification() {
                   </select>
                 </label>
                 <label className="block text-sm text-slate-700">
-                  النقاط المستهدفة
+                  النقاط المطلوبة
                   <input
                     type="number"
                     value={newChallenge.targetPoints}
@@ -477,7 +478,7 @@ export default function AdminGamification() {
                         </p>
                         <p className="text-xs text-slate-500">
                           {challenge.groupId?.name} | {challenge.currentPoints}/
-                          {challenge.targetPoints} نقطة
+                          {challenge.targetPoints} نقاط
                         </p>
                       </div>
                       <button

@@ -13,6 +13,7 @@ const { idParamsSchema } = require("../validation/schemas/admin.schema");
 const {
   createTicket,
   listTickets,
+  getMyTickets,
   updateTicketStatus,
 } = require("../controllers/ticket.controller");
 
@@ -25,6 +26,8 @@ router.post(
   validateBody(ticketCreateSchema),
   createTicket,
 );
+
+router.get("/my-tickets", authMiddleware, getMyTickets);
 
 // Only SuperAdmin (or roles with access) can list or update status
 router.get("/", authMiddleware, roleMiddleware("SuperAdmin"), listTickets);

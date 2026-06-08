@@ -13,6 +13,7 @@ const leaderboardRoutes = require("./routes/leaderboard.routes");
 const announcementRoutes = require("./routes/announcement.routes");
 const groupsRoutes = require("./routes/groups.routes");
 const ticketRoutes = require("./routes/ticket.routes");
+const { mapErrorToResponse } = require("./utils/error.helper");
 
 const app = express();
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -218,9 +219,8 @@ app.use("/api/announcements", announcementRoutes);
 // ============================================================================
 app.use((req, res) => {
   res.status(404).json({
-    error: "Not Found",
-    message: `The requested endpoint ${req.method} ${req.path} does not exist.`,
-    statusCode: 404,
+    success: false,
+    message: `عذراً، المسار ${req.method} ${req.path} غير موجود.`,
   });
 });
 
@@ -232,121 +232,28 @@ app.use((err, req, res, next) => {
   const requestId = res.get("X-Request-ID") || "UNKNOWN";
   const timestamp = new Date().toISOString();
 
-  // Default error object
-  let error = {
-    statusCode: err.statusCode || 500,
-    message: err.message || "Internal Server Error",
-    error: err.name || "Error",
-    requestId,
-    timestamp,
-  };
-
-  // Log error details
   console.error(`[${timestamp}] ERROR - ${requestId}`);
-  console.error(`  Status: ${error.statusCode}`);
-  console.error(`  Message: ${error.message}`);
-  console.error(`  Path: ${req.method} ${req.path}`);
+  console.error(err);
 
   if (NODE_ENV !== "production") {
-    console.error(`  Stack: ${err.stack}`);
+    console.error(err.stack);
   }
 
-  // ========================================================================
-  // HANDLE SPECIFIC ERROR TYPES
-  // ========================================================================
+  const mapped = mapErrorToResponse(err);
+  const response = {
+    success: false,
+    message: mapped.message,
+  };
 
-  // MongoDB Validation Error
-  if (err.name === "ValidationError") {
-    error.statusCode = 400;
-    error.error = "Validation Error";
-    error.details = Object.keys(err.errors).map((key) => ({
-      field: key,
-      message: err.errors[key].message,
-    }));
+  if (mapped.details) {
+    response.details = mapped.details;
   }
 
-  // MongoDB Cast Error (invalid ObjectId)
-  if (err.name === "CastError") {
-    error.statusCode = 400;
-    error.error = "Invalid ID Format";
-    error.message = `Invalid ${err.kind}: ${err.value}`;
+  if (mapped.field) {
+    response.field = mapped.field;
   }
 
-  // MongoDB Duplicate Key Error
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyPattern)[0];
-    error.statusCode = 409;
-    error.error = "Duplicate Entry";
-    error.message = `A record with this ${field} already exists.`;
-    error.field = field;
-  }
-
-  // JWT Errors
-  if (err.name === "JsonWebTokenError") {
-    error.statusCode = 401;
-    error.error = "Invalid Token";
-    error.message = "The provided token is invalid or malformed.";
-  }
-
-  if (err.name === "TokenExpiredError") {
-    error.statusCode = 401;
-    error.error = "Token Expired";
-    error.message = "Your session has expired. Please log in again.";
-  }
-
-  // CORS Errors
-  if (err.message && err.message.includes("CORS")) {
-    error.statusCode = 403;
-    error.error = "CORS Policy Violation";
-  }
-
-  // Rate Limit Errors
-  if (err.status === 429) {
-    error.statusCode = 429;
-    error.error = "Too Many Requests";
-    error.message = err.message || "Please try again later.";
-  }
-
-  // Multer file upload errors
-  if (err.name === "MulterError") {
-    error.statusCode = 400;
-    error.error = "File Upload Error";
-    if (err.code === "FILE_TOO_LARGE") {
-      error.message = `File size exceeds the limit of ${err.limit} bytes.`;
-    } else if (err.code === "LIMIT_FILE_COUNT") {
-      error.message = `Too many files. Maximum allowed: ${err.limit}.`;
-    }
-  }
-
-  // Joi validation errors
-  if (err.isJoi) {
-    error.statusCode = 400;
-    error.error = "Validation Error";
-    error.details = err.details.map((detail) => ({
-      field: detail.path.join("."),
-      message: detail.message,
-    }));
-  }
-
-  // ========================================================================
-  // SECURITY: Don't expose sensitive information in production
-  // ========================================================================
-  if (NODE_ENV === "production") {
-    // Remove stack trace in production
-    delete error.stack;
-
-    // Generic message for 500 errors
-    if (error.statusCode === 500) {
-      error.message = "An internal error occurred. Please try again later.";
-    }
-  }
-
-  // Ensure status code is within valid HTTP range
-  const statusCode = error.statusCode || 500;
-  const finalStatusCode =
-    statusCode >= 100 && statusCode < 600 ? statusCode : 500;
-
-  res.status(finalStatusCode).json(error);
+  res.status(mapped.statusCode).json(response);
 });
 
 module.exports = app;

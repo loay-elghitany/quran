@@ -1,7 +1,7 @@
 const User = require("../models/user.model");
 const Group = require("../models/group.model");
 
-const createUser = async (req, res) => {
+const createUser = async (req, res, next) => {
   try {
     const {
       firstName,
@@ -16,13 +16,16 @@ const createUser = async (req, res) => {
 
     if (!["Teacher", "Student", "Parent"].includes(role)) {
       return res.status(400).json({
-        message: "Invalid role. Must be Teacher, Student, or Parent.",
+        success: false,
+        message:
+          "الدور المحدد غير صالح. يجب أن يكون الدور 'Teacher' أو 'Student' أو 'Parent'.",
       });
     }
 
     if (role === "Student" && !teacherId) {
       return res.status(400).json({
-        message: "Student must be assigned a teacher.",
+        success: false,
+        message: "يجب تحديد معلم للطالب.",
       });
     }
 
@@ -31,7 +34,8 @@ const createUser = async (req, res) => {
       (!Array.isArray(childrenIds) || childrenIds.length === 0)
     ) {
       return res.status(400).json({
-        message: "Parent must have at least one child.",
+        success: false,
+        message: "يجب أن يتضمن الوالد معرف طفل واحد على الأقل.",
       });
     }
 
@@ -48,7 +52,7 @@ const createUser = async (req, res) => {
 
     const savedUser = await user.save();
     res.status(201).json({
-      message: "User created successfully.",
+      message: "تم إنشاء المستخدم بنجاح.",
       user: {
         id: savedUser._id,
         firstName: savedUser.firstName,
@@ -59,10 +63,14 @@ const createUser = async (req, res) => {
     });
   } catch (error) {
     if (error.code === 11000) {
-      res.status(400).json({ message: "Email already exists." });
-    } else {
-      res.status(500).json({ message: "Server error." });
+      return res.status(409).json({
+        success: false,
+        message:
+          "البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد إلكتروني مختلف.",
+      });
     }
+
+    next(error);
   }
 };
 
@@ -80,7 +88,8 @@ const getUsers = async (req, res) => {
     );
     res.json({ users });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    console.error(error);
+    next(error);
   }
 };
 
@@ -91,7 +100,8 @@ const getGroups = async (req, res) => {
       .populate("studentIds", "firstName lastName");
     res.json({ groups });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    console.error(error);
+    next(error);
   }
 };
 
@@ -100,13 +110,18 @@ const createGroup = async (req, res) => {
     const { name, teacherId, studentIds, description, grade } = req.body;
 
     if (!teacherId) {
-      return res.status(400).json({ message: "Teacher is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "يجب تحديد المعلم." });
     }
 
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
       return res
         .status(400)
-        .json({ message: "Group must include at least one student." });
+        .json({
+          success: false,
+          message: "يجب أن تحتوي المجموعة على طالب واحد على الأقل.",
+        });
     }
 
     const group = new Group({
@@ -118,18 +133,61 @@ const createGroup = async (req, res) => {
     });
 
     const savedGroup = await group.save();
-    res.status(201).json({
-      message: "Group created successfully.",
-      group: savedGroup,
+    res
+      .status(201)
+      .json({ message: "تم إنشاء المجموعة بنجاح.", group: savedGroup });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+const updateGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { name, teacherId, studentIds, description, grade } = req.body;
+
+    if (!teacherId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "يجب تحديد المعلم." });
+    }
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "يجب أن تحتوي المجموعة على طالب واحد على الأقل.",
+        });
+    }
+
+    const updatedGroup = await Group.findByIdAndUpdate(
+      groupId,
+      { name, teacherId, studentIds, description, grade },
+      { new: true },
+    )
+      .populate("teacherId", "firstName lastName")
+      .populate("studentIds", "firstName lastName");
+
+    res.status(200).json({
+      success: true,
+      message: "تم تحديث المجموعة بنجاح.",
+      group: updatedGroup,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error." });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
 module.exports = {
   createUser,
   createGroup,
+  updateGroup,
   getUsers,
   getGroups,
 };
