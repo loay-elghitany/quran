@@ -26,47 +26,35 @@ app.set("trust proxy", 1);
 // ============================================================================
 // SECURITY MIDDLEWARE: HELMET
 // ============================================================================
-// Safely parse FRONTEND_URL and build CSP directives
 const _rawFrontendUrl = (process.env.FRONTEND_URL || "").toString().trim();
-let _parsedFrontendOrigin = null;
-if (_rawFrontendUrl) {
-  try {
-    const u = new URL(_rawFrontendUrl);
-    _parsedFrontendOrigin = u.origin;
-  } catch (err) {
-    console.warn(
-      `Invalid FRONTEND_URL provided: ${_rawFrontendUrl} — ignoring.`,
-    );
-    _parsedFrontendOrigin = null;
-  }
-}
-const FRONTEND_URL_SAFE = _parsedFrontendOrigin || "http://localhost:5173";
-if (!_parsedFrontendOrigin) {
+const sanitizedFrontendUrl = _rawFrontendUrl.replace(/\/$/, "");
+const safeFrontendUrl = /^https?:\/\/[^/]+$/.test(sanitizedFrontendUrl)
+  ? sanitizedFrontendUrl
+  : "";
+const FRONTEND_URL_SAFE = safeFrontendUrl || "http://localhost:5173";
+if (!_rawFrontendUrl && NODE_ENV === "production") {
   console.warn(
-    `FRONTEND_URL not set or invalid; using fallback ${FRONTEND_URL_SAFE}`,
+    `FRONTEND_URL was not provided; using fallback ${FRONTEND_URL_SAFE} for CSP and CORS.`,
+  );
+} else if (_rawFrontendUrl && !safeFrontendUrl) {
+  console.warn(
+    `FRONTEND_URL was provided but not a valid origin; ignoring value ${_rawFrontendUrl}.`,
   );
 }
 
-// Build connect-src: always include 'self', add validated frontend origin, or allow general connections as fallback
-// ============================================================================
-// FIX: BUILD SAFE CONNECT-SRC FOR HELMET (CSP)
-// ============================================================================
-const connectSrc = ["'self'"];
-
-// لو الرابط موجود، نأخذ الـ origin وننظفه تماماً من أي علامة مائلة في الآخر
-if (_parsedFrontendOrigin) {
-  const cleanOrigin = _parsedFrontendOrigin.replace(/\/$/, "");
-  connectSrc.push(cleanOrigin);
-} else {
-  // بديل آمن للنجمة لتجنب اعتراض Helmet الصارم
-  connectSrc.push("http://*");
-  connectSrc.push("https://*");
+const allowedOrigins = [
+  "'self'",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+if (safeFrontendUrl) {
+  allowedOrigins.push(safeFrontendUrl);
 }
 
 const cspDirectives = {
   defaultSrc: ["'self'"],
   scriptSrc: ["'self'", "'unsafe-inline'"],
-  connectSrc: connectSrc, // تمرير المصفوفة النظيفة
+  connectSrc: allowedOrigins,
   imgSrc: ["'self'", "data:", "blob:", "*.cloudinary.com"],
   mediaSrc: ["'self'", "blob:", "*.cloudinary.com"],
   styleSrc: ["'self'", "'unsafe-inline'"],
