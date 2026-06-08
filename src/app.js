@@ -48,25 +48,31 @@ if (!_parsedFrontendOrigin) {
 }
 
 // Build connect-src: always include 'self', add validated frontend origin, or allow general connections as fallback
+// ============================================================================
+// FIX: BUILD SAFE CONNECT-SRC FOR HELMET (CSP)
+// ============================================================================
 const connectSrc = ["'self'"];
+
+// لو الرابط موجود، نأخذ الـ origin وننظفه تماماً من أي علامة مائلة في الآخر
 if (_parsedFrontendOrigin) {
-  connectSrc.push(_parsedFrontendOrigin);
+  const cleanOrigin = _parsedFrontendOrigin.replace(/\/$/, "");
+  connectSrc.push(cleanOrigin);
 } else {
-  // Allow general connections when no frontend origin is configured (safer than passing undefined)
-  connectSrc.push("*");
+  // بديل آمن للنجمة لتجنب اعتراض Helmet الصارم
+  connectSrc.push("http://*");
+  connectSrc.push("https://*");
 }
 
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'"],
-  connectSrc,
+  scriptSrc: ["'self'", "'unsafe-inline'"],
+  connectSrc: connectSrc, // تمرير المصفوفة النظيفة
   imgSrc: ["'self'", "data:", "blob:", "*.cloudinary.com"],
   mediaSrc: ["'self'", "blob:", "*.cloudinary.com"],
   styleSrc: ["'self'", "'unsafe-inline'"],
   fontSrc: ["'self'", "data:"],
   frameAncestors: ["'self'"],
 };
-
 // Only enable upgrade-insecure-requests directive in production (present as an empty array)
 if (NODE_ENV === "production") {
   cspDirectives.upgradeInsecureRequests = [];
