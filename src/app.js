@@ -26,22 +26,56 @@ app.set("trust proxy", 1);
 // ============================================================================
 // SECURITY MIDDLEWARE: HELMET
 // ============================================================================
+// Safely parse FRONTEND_URL and build CSP directives
+const _rawFrontendUrl = (process.env.FRONTEND_URL || "").toString().trim();
+let _parsedFrontendOrigin = null;
+if (_rawFrontendUrl) {
+  try {
+    const u = new URL(_rawFrontendUrl);
+    _parsedFrontendOrigin = u.origin;
+  } catch (err) {
+    console.warn(
+      `Invalid FRONTEND_URL provided: ${_rawFrontendUrl} — ignoring.`,
+    );
+    _parsedFrontendOrigin = null;
+  }
+}
+const FRONTEND_URL_SAFE = _parsedFrontendOrigin || "http://localhost:5173";
+if (!_parsedFrontendOrigin) {
+  console.warn(
+    `FRONTEND_URL not set or invalid; using fallback ${FRONTEND_URL_SAFE}`,
+  );
+}
+
+// Build connect-src: always include 'self', add validated frontend origin, or allow general connections as fallback
+const connectSrc = ["'self'"];
+if (_parsedFrontendOrigin) {
+  connectSrc.push(_parsedFrontendOrigin);
+} else {
+  // Allow general connections when no frontend origin is configured (safer than passing undefined)
+  connectSrc.push("*");
+}
+
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'"],
+  connectSrc,
+  imgSrc: ["'self'", "data:", "blob:", "*.cloudinary.com"],
+  mediaSrc: ["'self'", "blob:", "*.cloudinary.com"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  fontSrc: ["'self'", "data:"],
+  frameAncestors: ["'self'"],
+};
+
+// Only enable upgrade-insecure-requests directive in production (present as an empty array)
+if (NODE_ENV === "production") {
+  cspDirectives.upgradeInsecureRequests = [];
+}
+
 app.use(
   helmet({
     contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        connectSrc: [
-          "'self'",
-          process.env.FRONTEND_URL || "http://localhost:5173",
-        ],
-        imgSrc: ["'self'", "data:", "https:"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        fontSrc: ["'self'", "data:"],
-        frameAncestors: ["'self'"],
-        upgradeInsecureRequests: NODE_ENV === "production" ? [] : null,
-      },
+      directives: cspDirectives,
     },
     hsts: {
       maxAge: 31536000, // 1 year
@@ -56,10 +90,11 @@ app.use(
 // ============================================================================
 // CORS CONFIGURATION
 // ============================================================================
-const FRONTEND_URL = process.env.FRONTEND_URL;
-if (!FRONTEND_URL) {
-  throw new Error(
-    "❌ Missing FRONTEND_URL environment variable. Set FRONTEND_URL in .env before starting the server.",
+// Use the safely parsed frontend origin (falls back to localhost if missing/invalid)
+const FRONTEND_URL = FRONTEND_URL_SAFE;
+if (!_rawFrontendUrl && NODE_ENV === "production") {
+  console.warn(
+    "FRONTEND_URL was not provided in the environment; using fallback for CORS. This may be less strict than intended.",
   );
 }
 
