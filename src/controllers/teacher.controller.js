@@ -71,12 +71,10 @@ const getTeacherStudentsWithEvaluations = async (req, res) => {
     res.status(200).json({ success: true, groups: enrichedGroups });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -187,7 +185,7 @@ const createEvaluation = async (req, res, next) => {
       mistakes,
       grade,
       notes,
-      audioNote: req.file ? `/uploads/audio/${req.file.filename}` : undefined,
+      audioNote: req.file?.path || undefined,
     });
 
     const savedEvaluation = await evaluation.save();
