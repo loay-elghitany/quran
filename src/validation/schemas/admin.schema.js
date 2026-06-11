@@ -9,7 +9,14 @@ const groupIdParamsSchema = Joi.object({
   groupId: objectIdSchema,
 });
 
+const studentUpdateSchema = Joi.object({
+  teacherId: objectIdSchema.optional(),
+  groupId: objectIdSchema.optional().allow(""),
+  parentId: objectIdSchema.optional().allow(""),
+});
+
 module.exports = {
   idParamsSchema,
   groupIdParamsSchema,
+  studentUpdateSchema,
 };

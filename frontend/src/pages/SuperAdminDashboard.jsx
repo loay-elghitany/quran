@@ -11,6 +11,8 @@ export default function SuperAdminDashboard() {
   const [user, setUser] = useState(null);
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
+  const [parents, setParents] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [userType, setUserType] = useState("Teacher");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -22,6 +24,12 @@ export default function SuperAdminDashboard() {
   const [selectedGroupTeacher, setSelectedGroupTeacher] = useState("");
   const [selectedGroupStudents, setSelectedGroupStudents] = useState([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const [parentStudentSearchQuery, setParentStudentSearchQuery] = useState("");
+  const [studentManagementSearchQuery, setStudentManagementSearchQuery] =
+    useState("");
+  const [isStudentEditModalOpen, setIsStudentEditModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [studentUpdateStatus, setStudentUpdateStatus] = useState("");
   const [userStatus, setUserStatus] = useState("");
 
   const [groupName, setGroupName] = useState("");
@@ -40,16 +48,24 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [teacherRes, studentRes] = await Promise.all([
-          api.get("/admin/users?role=Teacher"),
-          api.get("/admin/users?role=Student"),
-        ]);
+        const [teacherRes, studentRes, parentRes, groupRes] = await Promise.all(
+          [
+            api.get("/admin/users?role=Teacher"),
+            api.get("/admin/users?role=Student"),
+            api.get("/admin/users?role=Parent"),
+            api.get("/admin/groups"),
+          ],
+        );
 
         const teachersData = teacherRes.data.users || [];
         const studentsData = studentRes.data.users || [];
+        const parentsData = parentRes.data.users || [];
+        const groupsData = groupRes.data.groups || [];
 
         setTeachers(teachersData);
         setStudents(studentsData);
+        setParents(parentsData);
+        setGroups(groupsData);
         setSelectedStudentTeacher(
           (current) => current || teachersData[0]?._id || "",
         );
@@ -133,6 +149,10 @@ export default function SuperAdminDashboard() {
     setSelectedGroupStudents((prev) => prev.filter((id) => id !== studentId));
   };
 
+  const removeSelectedParentChild = (studentId) => {
+    setSelectedParentChildren((prev) => prev.filter((id) => id !== studentId));
+  };
+
   const handleCreateGroup = async (e) => {
     e.preventDefault();
     try {
@@ -166,6 +186,68 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const openStudentEditModal = (student) => {
+    const normalizeId = (value) => String(value?._id || value);
+
+    const currentGroup = groups.find((group) =>
+      group.studentIds?.some(
+        (id) => normalizeId(id) === normalizeId(student._id),
+      ),
+    );
+    const currentParent = parents.find((parent) =>
+      parent.childrenIds?.some(
+        (id) => normalizeId(id) === normalizeId(student._id),
+      ),
+    );
+
+    setEditingStudent({
+      ...student,
+      teacherId: student.teacherId || "",
+      groupId: currentGroup?._id || "",
+      parentId: currentParent?._id || "",
+    });
+    setStudentUpdateStatus("");
+    setIsStudentEditModalOpen(true);
+  };
+
+  const handleEditingStudentChange = (field, value) => {
+    setEditingStudent((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
+  const handleUpdateStudent = async (e) => {
+    e.preventDefault();
+    if (!editingStudent) return;
+
+    try {
+      const payload = {
+        teacherId: editingStudent.teacherId || undefined,
+        groupId: editingStudent.groupId ?? "",
+        parentId: editingStudent.parentId ?? "",
+      };
+
+      const response = await api.put(
+        `/admin/users/students/${editingStudent._id}`,
+        payload,
+      );
+
+      const updatedStudent =
+        response.data.user || response.data.student || editingStudent;
+
+      setStudents((prev) =>
+        prev.map((student) =>
+          student._id === updatedStudent._id ? updatedStudent : student,
+        ),
+      );
+      setStudentUpdateStatus("تم تحديث بيانات الطالب بنجاح.");
+      setIsStudentEditModalOpen(false);
+      setEditingStudent(null);
+    } catch (error) {
+      setStudentUpdateStatus(
+        getApiErrorMessage(error, "غير قادر على تحديث بيانات الطالب."),
+      );
+    }
+  };
+
   const filteredGroupStudents = selectedGroupTeacher
     ? students.filter(
         (student) => String(student.teacherId) === selectedGroupTeacher,
@@ -179,6 +261,24 @@ export default function SuperAdminDashboard() {
       return full.includes(studentSearchQuery.trim().toLowerCase());
     },
   );
+
+  const filteredParentStudents = students.filter((student) => {
+    if (!parentStudentSearchQuery || parentStudentSearchQuery.trim() === "")
+      return true;
+    const full = `${student.firstName} ${student.lastName}`.toLowerCase();
+    return full.includes(parentStudentSearchQuery.trim().toLowerCase());
+  });
+
+  const filteredStudentManagement = students.filter((student) => {
+    if (
+      !studentManagementSearchQuery ||
+      studentManagementSearchQuery.trim() === ""
+    )
+      return true;
+    const full =
+      `${student.firstName} ${student.lastName} ${student.email}`.toLowerCase();
+    return full.includes(studentManagementSearchQuery.trim().toLowerCase());
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 text-slate-800">
@@ -313,32 +413,70 @@ export default function SuperAdminDashboard() {
                   </div>
                 )}
                 {userType === "Parent" && (
-                  <div className="space-y-2 text-sm text-slate-700">
+                  <div className="space-y-4 text-sm text-slate-700">
                     <span>اختر أبناء / طلاب الوصي</span>
-                    <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4">
+                    <input
+                      type="text"
+                      value={parentStudentSearchQuery}
+                      onChange={(e) =>
+                        setParentStudentSearchQuery(e.target.value)
+                      }
+                      placeholder="ابحث عن اسم الطالب..."
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                    />
+
+                    <div className="flex flex-wrap gap-2">
+                      {selectedParentChildren
+                        .map((id) => students.find((s) => s._id === id))
+                        .filter(Boolean)
+                        .map((student) => (
+                          <span
+                            key={student._id}
+                            className="inline-flex items-center gap-2 rounded-full bg-quran-50 border border-quran-200 px-3 py-1 text-sm text-quran-800"
+                          >
+                            {student.firstName} {student.lastName}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeSelectedParentChild(student._id)
+                              }
+                              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-quran-600 text-white text-xs"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                    </div>
+
+                    <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 max-h-72 overflow-y-auto">
                       {students.length === 0 ? (
                         <p className="text-sm text-slate-500">
                           لا يوجد طلاب مسجلين بعد
                         </p>
+                      ) : filteredParentStudents.length === 0 ? (
+                        <p className="text-sm text-slate-500">
+                          لا يوجد طلاب يطابقون البحث
+                        </p>
                       ) : (
-                        students.map((student) => (
-                          <label
-                            key={student._id}
-                            className="inline-flex items-center gap-3"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedParentChildren.includes(
-                                student._id,
-                              )}
-                              onChange={() =>
-                                handleToggleParentChild(student._id)
-                              }
-                              className="h-4 w-4 rounded border-slate-300 text-quran-600"
-                            />
-                            <span>{`${student.firstName} ${student.lastName}`}</span>
-                          </label>
-                        ))
+                        filteredParentStudents.map((student) => {
+                          const selected = selectedParentChildren.includes(
+                            student._id,
+                          );
+                          const labelClass = `inline-flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${selected ? "border-quran-500 bg-quran-50" : "border-slate-200 bg-white"}`;
+                          return (
+                            <label key={student._id} className={labelClass}>
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() =>
+                                  handleToggleParentChild(student._id)
+                                }
+                                className="h-4 w-4 rounded border-slate-300 text-quran-600"
+                              />
+                              <span>{`${student.firstName} ${student.lastName}`}</span>
+                            </label>
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -478,6 +616,208 @@ export default function SuperAdminDashboard() {
                 </div>
               </form>
             </section>
+            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-2xl font-semibold text-slate-900">
+                      إدارة الطلاب
+                    </h2>
+                    <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
+                      {filteredStudentManagement.length} / {students.length}{" "}
+                      طالب
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    حرر المعلم والمجموعة وولي الأمر لكل طالب مسجل.
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={studentManagementSearchQuery}
+                  onChange={(e) =>
+                    setStudentManagementSearchQuery(e.target.value)
+                  }
+                  placeholder="ابحث عن طالب بالاسم أو البريد الإلكتروني..."
+                  className="w-full max-w-sm rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600">
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        الاسم
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        البريد الإلكتروني
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        المعلم الحالي
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        إجراءات
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredStudentManagement.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="px-4 py-6 text-center text-slate-500"
+                        >
+                          لا يوجد طلاب مطابقين للبحث.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredStudentManagement.map((student) => {
+                        const teacher = teachers.find(
+                          (t) => String(t._id) === String(student.teacherId),
+                        );
+                        return (
+                          <tr key={student._id}>
+                            <td className="px-4 py-3">
+                              {student.firstName} {student.lastName}
+                            </td>
+                            <td className="px-4 py-3">{student.email}</td>
+                            <td className="px-4 py-3">
+                              {teacher
+                                ? `${teacher.firstName} ${teacher.lastName}`
+                                : "غير معين"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                onClick={() => openStudentEditModal(student)}
+                                className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                              >
+                                تحرير
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {isStudentEditModalOpen && editingStudent && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+                <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+                  <div className="mb-6 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-900">
+                        تحرير بيانات الطالب
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        عدِّل المعلم والمجموعة وولي الأمر للطالب المحدد.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStudentEditModalOpen(false);
+                        setEditingStudent(null);
+                        setStudentUpdateStatus("");
+                      }}
+                      className="text-slate-500 hover:text-slate-900"
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleUpdateStudent} className="space-y-4">
+                    <label className="space-y-2 text-sm text-slate-700">
+                      المعلم
+                      <select
+                        value={editingStudent.teacherId || ""}
+                        onChange={(e) =>
+                          handleEditingStudentChange(
+                            "teacherId",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                      >
+                        <option value="">اختر معلمًا</option>
+                        {teachers.map((teacher) => (
+                          <option key={teacher._id} value={teacher._id}>
+                            {teacher.firstName} {teacher.lastName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="space-y-2 text-sm text-slate-700">
+                      المجموعة
+                      <select
+                        value={editingStudent.groupId ?? ""}
+                        onChange={(e) =>
+                          handleEditingStudentChange("groupId", e.target.value)
+                        }
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                      >
+                        <option value="">لا توجد مجموعة</option>
+                        {groups.map((group) => (
+                          <option key={group._id} value={group._id}>
+                            {group.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="space-y-2 text-sm text-slate-700">
+                      ولي الأمر
+                      <select
+                        value={editingStudent.parentId ?? ""}
+                        onChange={(e) =>
+                          handleEditingStudentChange("parentId", e.target.value)
+                        }
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                      >
+                        <option value="">لا يوجد ولي أمر</option>
+                        {parents.map((parent) => (
+                          <option key={parent._id} value={parent._id}>
+                            {parent.firstName} {parent.lastName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {studentUpdateStatus && (
+                      <p className="text-sm text-quran-700">
+                        {studentUpdateStatus}
+                      </p>
+                    )}
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsStudentEditModalOpen(false);
+                          setEditingStudent(null);
+                          setStudentUpdateStatus("");
+                        }}
+                        className="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        type="submit"
+                        className="rounded-2xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700"
+                      >
+                        حفظ التغييرات
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             <section className="rounded-3xl bg-white border border-slate-200 p-8 shadow-sm">
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>

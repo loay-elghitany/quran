@@ -5,11 +5,12 @@ const User = require("./src/models/user.model");
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://localhost:27017/quran-memorization";
 
+// 👈 اكتب هنا بيانات الأدمن الثاني اللي أنت عايز تضيفه
 const initialAdminData = {
-  firstName: "Super",
+  firstName: "Second",
   lastName: "Admin",
-  email: "elghitany@quran.com",
-  password: "Loay@1234",
+  email: "omoby@quran.com", // ⚠️ تأكد إن الإيميل ده مختلف عن القديم
+  password: "opi@1234",
   role: "SuperAdmin",
 };
 
@@ -25,14 +26,15 @@ async function seedSuperAdmin() {
   });
 
   try {
-    const existingSuperAdmin = await User.findOne({ role: "SuperAdmin" });
+    // 🕵️‍♂️ التعديل هنا: بنبحث بالإيميل الجديد مش بالرتبة عشان نمنع التضارب
+    const existingAdminByEmail = await User.findOne({ email: initialAdminData.email });
 
-    if (existingSuperAdmin) {
-      console.log("SuperAdmin already exists:", existingSuperAdmin.email);
+    if (existingAdminByEmail) {
+      console.log(`❌ هيلو يا هندسة! الأدمن ده موجود بالفعل بنفس الإيميل: ${existingAdminByEmail.email}`);
     } else {
       const adminUser = new User(initialAdminData);
       await adminUser.save();
-      console.log("Created initial SuperAdmin:", adminUser.email);
+      console.log(`✅ عظمة! تم إنشاء الأدمن الثاني بنجاح: ${adminUser.email}`);
     }
   } catch (error) {
     console.error("Seeding failed:", error);

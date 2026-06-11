@@ -105,6 +105,62 @@ const getGroups = async (req, res) => {
   }
 };
 
+const updateStudent = async (req, res, next) => {
+  try {
+    const studentId = req.params.id;
+    const { teacherId, groupId, parentId } = req.body;
+
+    const student = await User.findById(studentId);
+    if (!student || student.role !== "Student") {
+      return res.status(404).json({
+        success: false,
+        message: "الطالب غير موجود.",
+      });
+    }
+
+    if (teacherId) {
+      student.teacherId = teacherId;
+    }
+
+    if (groupId !== undefined) {
+      await Group.findOneAndUpdate(
+        { studentIds: student._id },
+        { $pull: { studentIds: student._id } },
+      );
+
+      if (groupId) {
+        await Group.findByIdAndUpdate(groupId, {
+          $addToSet: { studentIds: student._id },
+        });
+      }
+    }
+
+    if (parentId !== undefined) {
+      await User.findOneAndUpdate(
+        { role: "Parent", childrenIds: student._id },
+        { $pull: { childrenIds: student._id } },
+      );
+
+      if (parentId) {
+        await User.findByIdAndUpdate(parentId, {
+          $addToSet: { childrenIds: student._id },
+        });
+      }
+    }
+
+    const updatedStudent = await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: "تم تحديث بيانات الطالب بنجاح.",
+      user: updatedStudent,
+    });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
 const createGroup = async (req, res) => {
   try {
     const { name, teacherId, studentIds, description, grade } = req.body;
@@ -116,12 +172,10 @@ const createGroup = async (req, res) => {
     }
 
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "يجب أن تحتوي المجموعة على طالب واحد على الأقل.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "يجب أن تحتوي المجموعة على طالب واحد على الأقل.",
+      });
     }
 
     const group = new Group({
@@ -154,12 +208,10 @@ const updateGroup = async (req, res) => {
     }
 
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "يجب أن تحتوي المجموعة على طالب واحد على الأقل.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "يجب أن تحتوي المجموعة على طالب واحد على الأقل.",
+      });
     }
 
     const updatedGroup = await Group.findByIdAndUpdate(
@@ -188,6 +240,7 @@ module.exports = {
   createUser,
   createGroup,
   updateGroup,
+  updateStudent,
   getUsers,
   getGroups,
 };

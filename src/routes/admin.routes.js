@@ -4,6 +4,7 @@ const {
   createUser,
   createGroup,
   updateGroup,
+  updateStudent,
   getUsers,
   getGroups,
 } = require("../controllers/superadmin.controller");
@@ -61,6 +62,7 @@ const {
 const {
   idParamsSchema,
   groupIdParamsSchema,
+  studentUpdateSchema,
 } = require("../validation/schemas/admin.schema");
 const { cloudinaryPdfStorage } = require("../config/cloudinary");
 
@@ -89,6 +91,12 @@ router.put(
   "/groups/:groupId",
   validateParams(groupIdParamsSchema),
   updateGroup,
+);
+router.put(
+  "/users/students/:id",
+  validateParams(idParamsSchema),
+  validateBody(studentUpdateSchema),
+  updateStudent,
 );
 router.post("/announcements", createAnnouncement);
 router.post("/rewards", validateBody(rewardCreateSchema), createReward);
