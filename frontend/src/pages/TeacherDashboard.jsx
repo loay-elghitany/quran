@@ -4,7 +4,7 @@ import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
 import AnnouncementsBanner from "../components/AnnouncementsBanner";
 
-const attendanceOptions = ["حاضر", "غائب", "متأخر"];
+const attendanceOptions = ["حاضر", "غائب بعذر", "غائب بدون عذر"];
 const gradeOptions = ["ممتاز", "جيد جدًا", "جيد", "يحتاج مراجعة"];
 
 const ticketTypeOptions = [
@@ -551,7 +551,7 @@ export default function TeacherDashboard() {
                 {toastMessage}
               </div>
             )}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {groups.map((group) => (
                 <section
                   key={group._id}
@@ -653,13 +653,14 @@ export default function TeacherDashboard() {
                         لا يوجد طلاب مضافين لهذه الحلقة.
                       </p>
                     ) : (
-                      <ul className="space-y-4">
-                        {(group?.students || group?.studentIds || []).map(
-                          (student) => (
-                            <li
-                              key={student._id}
-                              className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-                            >
+                      <div className="overflow-x-auto w-full">
+                        <ul className="min-w-full space-y-4">
+                          {(group?.students || group?.studentIds || []).map(
+                            (student) => (
+                              <li
+                                key={student._id}
+                                className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                              >
                               <div>
                                 <p className="text-base font-semibold text-slate-900">
                                   {student.firstName} {student.lastName}
@@ -750,7 +751,7 @@ export default function TeacherDashboard() {
                     onChange={(e) =>
                       handleEvaluationChange("attendanceStatus", e.target.value)
                     }
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                    className="mt-2 w-full sm:w-auto rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
                   >
                     {attendanceOptions.map((option) => (
                       <option key={option} value={option}>
@@ -769,7 +770,7 @@ export default function TeacherDashboard() {
                     onChange={(e) =>
                       handleEvaluationChange("grade", e.target.value)
                     }
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                    className="mt-2 w-full sm:w-auto rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
                   >
                     {gradeOptions.map((option) => (
                       <option key={option} value={option}>
@@ -977,7 +978,7 @@ export default function TeacherDashboard() {
                 <button
                   type="button"
                   onClick={() => setActiveTicketTab(0)}
-                  className={`flex-1 rounded-full px-5 py-3 text-sm font-semibold transition ${
+                  className={`flex-1 w-full sm:w-auto rounded-full px-5 py-3 text-sm font-semibold transition ${
                     activeTicketTab === 0
                       ? "bg-quran-700 text-white"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -988,7 +989,7 @@ export default function TeacherDashboard() {
                 <button
                   type="button"
                   onClick={() => setActiveTicketTab(1)}
-                  className={`flex-1 rounded-full px-5 py-3 text-sm font-semibold transition ${
+                  className={`flex-1 w-full sm:w-auto rounded-full px-5 py-3 text-sm font-semibold transition ${
                     activeTicketTab === 1
                       ? "bg-quran-700 text-white"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"

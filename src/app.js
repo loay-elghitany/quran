@@ -13,6 +13,7 @@ const leaderboardRoutes = require("./routes/leaderboard.routes");
 const announcementRoutes = require("./routes/announcement.routes");
 const groupsRoutes = require("./routes/groups.routes");
 const ticketRoutes = require("./routes/ticket.routes");
+const settingsRoutes = require("./routes/settings.routes");
 const { mapErrorToResponse } = require("./utils/error.helper");
 
 const app = express();
@@ -241,6 +242,7 @@ app.use("/api/parent", parentRoutes);
 app.use("/api/content", contentRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/settings", settingsRoutes);
 app.use("/api/announcements", announcementRoutes);
 
 // ============================================================================

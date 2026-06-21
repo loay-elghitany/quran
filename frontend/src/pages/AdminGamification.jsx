@@ -43,6 +43,21 @@ export default function AdminGamification() {
   const [mysteryBoxMessage, setMysteryBoxMessage] = useState("");
   const [newReward, setNewReward] = useState("");
 
+  // Settings State
+  const [settings, setSettings] = useState(null);
+  const [settingsForm, setSettingsForm] = useState({
+    attendancePoints: 5,
+    excusedAbsencePoints: 0,
+    unexcusedAbsencePoints: 0,
+    gradeExcellentPoints: 10,
+    gradeVeryGoodPoints: 8,
+    gradeGoodPoints: 5,
+    gradeAcceptablePoints: 2,
+    errorPenaltyMultiplier: 1,
+  });
+  const [settingsMessage, setSettingsMessage] = useState("");
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
@@ -52,6 +67,7 @@ export default function AdminGamification() {
     loadChallenges();
     loadGroups();
     loadMysteryBox();
+    loadSettings();
   }, []);
 
   const loadBadges = async () => {
@@ -161,6 +177,50 @@ export default function AdminGamification() {
     }
   };
 
+  // Settings Handlers
+  const loadSettings = async () => {
+    try {
+      setSettingsLoading(true);
+      const response = await api.get("/admin/settings/gamification");
+      const s = response.data.settings;
+      setSettings(s);
+      setSettingsForm({
+        attendancePoints: s.attendancePoints ?? 5,
+        excusedAbsencePoints: s.excusedAbsencePoints ?? 0,
+        unexcusedAbsencePoints: s.unexcusedAbsencePoints ?? 0,
+        gradeExcellentPoints: s.gradeExcellentPoints ?? 10,
+        gradeVeryGoodPoints: s.gradeVeryGoodPoints ?? 8,
+        gradeGoodPoints: s.gradeGoodPoints ?? 5,
+        gradeAcceptablePoints: s.gradeAcceptablePoints ?? 2,
+        errorPenaltyMultiplier: s.errorPenaltyMultiplier ?? 1,
+      });
+    } catch (error) {
+      console.error("Failed to load settings:", error);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleUpdateSettings = async () => {
+    try {
+      const response = await api.put(
+        "/admin/settings/gamification",
+        settingsForm,
+      );
+      setSettings(response.data.settings);
+      setSettingsMessage("تم تحديث إعدادات النقاط بنجاح!");
+      setTimeout(() => setSettingsMessage(""), 3000);
+    } catch (error) {
+      setSettingsMessage(
+        getApiErrorMessage(error, "فشل تحديث إعدادات النقاط."),
+      );
+    }
+  };
+
+  const handleSettingsFieldChange = (field, value) => {
+    setSettingsForm((prev) => ({ ...prev, [field]: Number(value) }));
+  };
+
   // Mystery Box Handlers
   const handleAddReward = () => {
     if (!newReward.trim()) return;
@@ -216,7 +276,7 @@ export default function AdminGamification() {
 
         {/* Tab Navigation */}
         <div className="flex flex-col gap-4 mb-8 sm:flex-row">
-          {["badges", "challenges", "mysteryBox"].map((tab) => (
+          {["badges", "challenges", "settings", "mysteryBox"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -230,7 +290,9 @@ export default function AdminGamification() {
                 ? "الأوسمة"
                 : tab === "challenges"
                   ? "التحديات"
-                  : "صندوق الأسرار"}
+                  : tab === "settings"
+                    ? "نظام النقاط"
+                    : "صندوق الأسرار"}
             </button>
           ))}
         </div>
@@ -495,6 +557,256 @@ export default function AdminGamification() {
                     لا توجد تحديات بعد.
                   </p>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === "settings" && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Settings Form */}
+            <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+              <h2 className="text-2xl font-semibold text-slate-900 mb-6">
+                إعدادات نظام النقاط
+              </h2>
+
+              {settingsLoading ? (
+                <div className="flex justify-center py-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-quran-600 border-t-transparent" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="rounded-3xl bg-quran-50 p-5">
+                    <p className="font-semibold text-slate-900 mb-3">
+                      نقاط الحضور
+                    </p>
+                    <div className="grid gap-3">
+                      <label className="block text-sm text-slate-700">
+                        حاضر
+                        <input
+                          type="number"
+                          value={settingsForm.attendancePoints}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "attendancePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                          min={0}
+                        />
+                      </label>
+                      <label className="block text-sm text-slate-700">
+                        غائب بعذر
+                        <input
+                          type="number"
+                          value={settingsForm.excusedAbsencePoints}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "excusedAbsencePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="block text-sm text-slate-700">
+                        غائب بدون عذر
+                        <input
+                          type="number"
+                          value={settingsForm.unexcusedAbsencePoints}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "unexcusedAbsencePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl bg-quran-50 p-5">
+                    <p className="font-semibold text-slate-900 mb-3">
+                      نقاط التقييم
+                    </p>
+                    <div className="grid gap-3">
+                      <label className="block text-sm text-slate-700">
+                        ممتاز
+                        <input
+                          type="number"
+                          value={settingsForm.gradeExcellentPoints}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "gradeExcellentPoints",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                          min={0}
+                        />
+                      </label>
+                      <label className="block text-sm text-slate-700">
+                        جيد جداً
+                        <input
+                          type="number"
+                          value={settingsForm.gradeVeryGoodPoints}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "gradeVeryGoodPoints",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                          min={0}
+                        />
+                      </label>
+                      <label className="block text-sm text-slate-700">
+                        جيد
+                        <input
+                          type="number"
+                          value={settingsForm.gradeGoodPoints}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "gradeGoodPoints",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                          min={0}
+                        />
+                      </label>
+                      <label className="block text-sm text-slate-700">
+                        مقبول
+                        <input
+                          type="number"
+                          value={settingsForm.gradeAcceptablePoints}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "gradeAcceptablePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                          min={0}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl bg-quran-50 p-5">
+                    <p className="font-semibold text-slate-900 mb-3">
+                      خصم الأخطاء
+                    </p>
+                    <label className="block text-sm text-slate-700">
+                      عدد النقاط المخصومة لكل خطأ
+                      <input
+                        type="number"
+                        value={settingsForm.errorPenaltyMultiplier}
+                        onChange={(e) =>
+                          handleSettingsFieldChange(
+                            "errorPenaltyMultiplier",
+                            e.target.value,
+                          )
+                        }
+                        className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                        min={0}
+                      />
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={handleUpdateSettings}
+                    className="w-full rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700 transition"
+                  >
+                    حفظ الإعدادات
+                  </button>
+
+                  {settingsMessage && (
+                    <p className="text-sm text-slate-600">{settingsMessage}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Live Preview */}
+            <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+              <h2 className="text-2xl font-semibold text-slate-900 mb-6">
+                معاينة: كيف يتم حساب النقاط؟
+              </h2>
+              <div className="space-y-4 text-sm leading-7">
+                <div className="rounded-3xl bg-quran-50 p-4">
+                  <p className="font-semibold text-slate-900 mb-2">الحضور</p>
+                  <ul className="space-y-1">
+                    <li>
+                      • حاضر:{" "}
+                      <span className="font-semibold text-quran-700">
+                        +{settingsForm.attendancePoints} نقاط
+                      </span>
+                    </li>
+                    <li>
+                      • غائب بعذر:{" "}
+                      <span className="font-semibold text-quran-700">
+                        {settingsForm.excusedAbsencePoints > 0
+                          ? `+${settingsForm.excusedAbsencePoints} نقاط`
+                          : `${settingsForm.excusedAbsencePoints} نقطة`}
+                      </span>
+                    </li>
+                    <li className="text-red-600">
+                      • غائب بدون عذر:{" "}
+                      <span className="font-semibold">
+                        {settingsForm.unexcusedAbsencePoints > 0
+                          ? `+${settingsForm.unexcusedAbsencePoints}`
+                          : settingsForm.unexcusedAbsencePoints}{" "}
+                        نقطة
+                        {settingsForm.unexcusedAbsencePoints < 0
+                          ? " (خصم)"
+                          : ""}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="rounded-3xl bg-quran-50 p-4">
+                  <p className="font-semibold text-slate-900 mb-2">التقييم</p>
+                  <ul className="space-y-1">
+                    <li>
+                      • ممتاز:{" "}
+                      <span className="font-semibold text-quran-700">
+                        +{settingsForm.gradeExcellentPoints} نقاط
+                      </span>
+                    </li>
+                    <li>
+                      • جيد جداً:{" "}
+                      <span className="font-semibold text-quran-700">
+                        +{settingsForm.gradeVeryGoodPoints} نقاط
+                      </span>
+                    </li>
+                    <li>
+                      • جيد:{" "}
+                      <span className="font-semibold text-quran-700">
+                        +{settingsForm.gradeGoodPoints} نقاط
+                      </span>
+                    </li>
+                    <li>
+                      • مقبول:{" "}
+                      <span className="font-semibold text-quran-700">
+                        +{settingsForm.gradeAcceptablePoints} نقاط
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="rounded-3xl bg-quran-50 p-4">
+                  <p className="font-semibold text-slate-900 mb-2">الأخطاء</p>
+                  <p>
+                    • يتم خصم{" "}
+                    <span className="font-semibold text-quran-700">
+                      {settingsForm.errorPenaltyMultiplier} نقطة
+                    </span>{" "}
+                    لكل خطأ أو تنبيه.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

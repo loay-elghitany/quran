@@ -5,8 +5,13 @@ const {
   createGroup,
   updateGroup,
   updateStudent,
+  updateTeacher,
+  updateParent,
   getUsers,
   getGroups,
+  exportStudentCredentials,
+  getSystemSettings,
+  updateSystemSettings,
 } = require("../controllers/superadmin.controller");
 const {
   createAnnouncement,
@@ -63,6 +68,8 @@ const {
   idParamsSchema,
   groupIdParamsSchema,
   studentUpdateSchema,
+  teacherUpdateSchema,
+  parentUpdateSchema,
 } = require("../validation/schemas/admin.schema");
 const { cloudinaryPdfStorage } = require("../config/cloudinary");
 
@@ -85,12 +92,25 @@ router.use(roleMiddleware("SuperAdmin"));
 
 router.get("/users", getUsers);
 router.get("/groups", getGroups);
+router.get("/export/students-credentials", exportStudentCredentials);
 router.post("/users", createUser);
 router.post("/groups", createGroup);
 router.put(
   "/groups/:groupId",
   validateParams(groupIdParamsSchema),
   updateGroup,
+);
+router.put(
+  "/users/teachers/:id",
+  validateParams(idParamsSchema),
+  validateBody(teacherUpdateSchema),
+  updateTeacher,
+);
+router.put(
+  "/users/parents/:id",
+  validateParams(idParamsSchema),
+  validateBody(parentUpdateSchema),
+  updateParent,
 );
 router.put(
   "/users/students/:id",
@@ -184,5 +204,9 @@ router.put(
   validateBody(mysteryBoxConfigSchema),
   updateMysteryBoxConfig,
 );
+
+// System Settings - Gamification
+router.get("/settings/gamification", getSystemSettings);
+router.put("/settings/gamification", updateSystemSettings);
 
 module.exports = router;

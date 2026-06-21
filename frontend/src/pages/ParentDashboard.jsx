@@ -134,7 +134,7 @@ export default function ParentDashboard() {
     >
       <Navbar role={user?.role} />
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <header className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200 mb-8">
+        <header className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200 mb-8">
           <AnnouncementsBanner />
           <div className="mt-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -160,7 +160,7 @@ export default function ParentDashboard() {
           </div>
         </header>
 
-        <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200 mb-8">
+        <section className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200 mb-8">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">
@@ -247,7 +247,7 @@ export default function ParentDashboard() {
           )}
         </section>
 
-        <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+        <section className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">أبناؤك</h2>
@@ -258,16 +258,35 @@ export default function ParentDashboard() {
           </div>
 
           {dashboard.children.length === 0 ? (
-            <div className="rounded-3xl bg-slate-50 p-10 text-center text-slate-600">
+            <div className="rounded-3xl bg-slate-50 p-8 text-center text-slate-600">
               لم يتم تسجيل أي أبناء بعد.
             </div>
           ) : (
-            <div className="grid gap-6 lg:grid-cols-2">
-              {dashboard.children.map((child) => (
-                <article
-                  key={child._id}
-                  className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm"
-                >
+            <>
+              <div className="mb-4 overflow-x-auto pb-2">
+                <div className="flex gap-2">
+                  {dashboard.children.map((child) => (
+                    <button
+                      key={child._id}
+                      type="button"
+                      onClick={() => openChildModal(child)}
+                      className={`flex-shrink-0 rounded-3xl border px-4 py-2 text-sm font-semibold transition ${
+                        selectedChild?._id === child._id
+                          ? "bg-quran-700 text-white border-quran-700"
+                          : "bg-white text-slate-700 border-slate-200 hover:border-quran-300"
+                      }`}
+                    >
+                      {child.firstName} {child.lastName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                {dashboard.children.map((child) => (
+                  <article
+                    key={child._id}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm"
+                  >
                   <div className="flex flex-col gap-4">
                     <div>
                       <p className="text-sm text-slate-500">الابن / الطالبة</p>
@@ -316,8 +335,8 @@ export default function ParentDashboard() {
       </div>
 
       {selectedChild && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4 py-6">
-          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/70 px-4 py-8 sm:items-center sm:px-6 sm:py-12">
+          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl max-h-[calc(100vh-4rem)]">
             <div className="flex flex-col gap-4 border-b border-slate-200 bg-quran-600 px-6 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm">سجل تقييمات الطالب</p>
@@ -333,7 +352,7 @@ export default function ParentDashboard() {
                 إغلاق
               </button>
             </div>
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 p-6 overflow-y-auto sm:p-8">
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="rounded-3xl bg-slate-50 p-5 text-sm text-slate-700 shadow-sm">
                   <p className="text-slate-500">المعلم</p>

@@ -4,6 +4,7 @@ const Evaluation = require("../models/evaluation.model");
 const Badge = require("../models/badge.model");
 const LeaveRequest = require("../models/leaverequest.model");
 const User = require("../models/user.model");
+const SystemSettings = require("../models/systemSettings.model");
 const notificationService = require("../services/notification.service");
 
 const getStudents = async (req, res, next) => {
@@ -153,20 +154,29 @@ const createEvaluation = async (req, res, next) => {
       return res.status(400).json({ message: "يجب تحديد الطالب والحلقة." });
     }
 
-    let points = 0;
-    if (attendanceStatus === "حاضر") points += 10;
-    else if (attendanceStatus === "متأخر") points += 5;
-    else if (attendanceStatus === "غائب") points -= 20;
+    // Fetch dynamic settings from database
+    let settings = await SystemSettings.findOne();
+    if (!settings) {
+      settings = await SystemSettings.create({});
+    }
 
-    const gradeScores = {
-      ممتاز: 50,
-      "جيد جداً": 40,
-      جيد: 20,
-      "يحتاج مراجعة": 0,
-    };
-    points += gradeScores[grade] || 0;
-    points -= (mistakes || 0) * 2;
-    const earnedPoints = points;
+    let points = 0;
+    if (attendanceStatus === "حاضر") {
+      // Base from grade + attendance points - error penalty
+      const gradeScores = {
+        ممتاز: settings.gradeExcellentPoints,
+        "جيد جداً": settings.gradeVeryGoodPoints,
+        جيد: settings.gradeGoodPoints,
+        مقبول: settings.gradeAcceptablePoints,
+      };
+      points = (gradeScores[grade] || 0) + settings.attendancePoints;
+      points -= (mistakes || 0) * settings.errorPenaltyMultiplier;
+    } else if (attendanceStatus === "غائب بعذر") {
+      points = settings.excusedAbsencePoints;
+    } else if (attendanceStatus === "غائب بدون عذر") {
+      points = settings.unexcusedAbsencePoints;
+    }
+    const earnedPoints = Math.max(0, points);
 
     const evaluation = new Evaluation({
       teacherId: req.user._id,

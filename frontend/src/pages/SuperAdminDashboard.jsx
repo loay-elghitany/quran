@@ -38,6 +38,27 @@ export default function SuperAdminDashboard() {
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [announcementStatus, setAnnouncementStatus] = useState("");
 
+  // Gamification System Settings
+  const [settings, setSettings] = useState({
+    attendancePoints: 5,
+    excusedAbsencePoints: 0,
+    unexcusedAbsencePoints: 0,
+    gradeExcellentPoints: 10,
+    gradeVeryGoodPoints: 8,
+    gradeGoodPoints: 5,
+    gradeAcceptablePoints: 2,
+    errorPenaltyMultiplier: 1,
+  });
+  const [settingsStatus, setSettingsStatus] = useState("");
+
+  // Teacher / Parent edit modal states
+  const [editingTeacher, setEditingTeacher] = useState(null);
+  const [isTeacherEditModalOpen, setIsTeacherEditModalOpen] = useState(false);
+  const [editingParent, setEditingParent] = useState(null);
+  const [isParentEditModalOpen, setIsParentEditModalOpen] = useState(false);
+  const [teacherEditSearchQuery, setTeacherEditSearchQuery] = useState("");
+  const [parentEditSearchQuery, setParentEditSearchQuery] = useState("");
+
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
@@ -83,6 +104,40 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     setSelectedGroupStudents([]);
   }, [selectedGroupTeacher]);
+
+  // Fetch gamification settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await api.get("/admin/settings/gamification");
+        if (response.data.settings) {
+          setSettings(response.data.settings);
+        }
+      } catch (error) {
+        console.error("Failed to load gamification settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSettingsChange = (field, value) => {
+    setSettings((prev) => ({ ...prev, [field]: Number(value) || 0 }));
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.put("/admin/settings/gamification", settings);
+      if (response.data.success) {
+        setSettings(response.data.settings);
+        setSettingsStatus("تم حفظ إعدادات نظام النقاط بنجاح.");
+      }
+    } catch (error) {
+      setSettingsStatus(
+        getApiErrorMessage(error, "فشل حفظ الإعدادات. حاول مرة أخرى."),
+      );
+    }
+  };
 
   const getArabicRole = (role) => {
     switch (role) {
@@ -214,6 +269,27 @@ export default function SuperAdminDashboard() {
     setEditingStudent((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
+  const handleExportCredentials = async () => {
+    try {
+      const response = await api.get("/admin/export/students-credentials", {
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "students_credentials.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export student credentials:", error);
+    }
+  };
+
   const handleUpdateStudent = async (e) => {
     e.preventDefault();
     if (!editingStudent) return;
@@ -248,6 +324,124 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  // ---- Teacher Edit handlers ----
+  const openTeacherEditModal = (teacher) => {
+    setEditingTeacher({
+      firstName: teacher.firstName || "",
+      lastName: teacher.lastName || "",
+      email: teacher.email || "",
+      phone: teacher.phone || "",
+      password: "",
+      _id: teacher._id,
+    });
+    setIsTeacherEditModalOpen(true);
+  };
+
+  const handleEditingTeacherChange = (field, value) => {
+    setEditingTeacher((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
+  const handleUpdateTeacher = async (e) => {
+    e.preventDefault();
+    if (!editingTeacher) return;
+
+    try {
+      const payload = {};
+      if (editingTeacher.firstName)
+        payload.firstName = editingTeacher.firstName;
+      if (editingTeacher.lastName) payload.lastName = editingTeacher.lastName;
+      if (editingTeacher.email) payload.email = editingTeacher.email;
+      if (editingTeacher.phone) payload.phone = editingTeacher.phone;
+      if (editingTeacher.password) payload.password = editingTeacher.password;
+
+      const response = await api.put(
+        `/admin/users/teachers/${editingTeacher._id}`,
+        payload,
+      );
+
+      const updatedTeacher = response.data.user || editingTeacher;
+
+      setTeachers((prev) =>
+        prev.map((teacher) =>
+          teacher._id === updatedTeacher._id ? updatedTeacher : teacher,
+        ),
+      );
+      setIsTeacherEditModalOpen(false);
+      setEditingTeacher(null);
+    } catch (error) {
+      console.error("Failed to update teacher:", error);
+    }
+  };
+
+  // ---- Parent Edit handlers ----
+  const openParentEditModal = (parent) => {
+    const normalizeId = (value) => String(value?._id || value);
+    const currentChildrenIds = (parent.childrenIds || []).map((id) =>
+      normalizeId(id),
+    );
+
+    setEditingParent({
+      firstName: parent.firstName || "",
+      lastName: parent.lastName || "",
+      email: parent.email || "",
+      phone: parent.phone || "",
+      password: "",
+      _id: parent._id,
+      childrenIds: currentChildrenIds,
+    });
+    setIsParentEditModalOpen(true);
+  };
+
+  const handleEditingParentChange = (field, value) => {
+    setEditingParent((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
+  const handleToggleEditParentChild = (studentId) => {
+    setEditingParent((prev) => {
+      if (!prev) return prev;
+      const current = prev.childrenIds || [];
+      return {
+        ...prev,
+        childrenIds: current.includes(studentId)
+          ? current.filter((id) => id !== studentId)
+          : [...current, studentId],
+      };
+    });
+  };
+
+  const handleUpdateParent = async (e) => {
+    e.preventDefault();
+    if (!editingParent) return;
+
+    try {
+      const payload = {};
+      if (editingParent.firstName) payload.firstName = editingParent.firstName;
+      if (editingParent.lastName) payload.lastName = editingParent.lastName;
+      if (editingParent.email) payload.email = editingParent.email;
+      if (editingParent.phone) payload.phone = editingParent.phone;
+      if (editingParent.password) payload.password = editingParent.password;
+      if (editingParent.childrenIds)
+        payload.childrenIds = editingParent.childrenIds;
+
+      const response = await api.put(
+        `/admin/users/parents/${editingParent._id}`,
+        payload,
+      );
+
+      const updatedParent = response.data.user || editingParent;
+
+      setParents((prev) =>
+        prev.map((parent) =>
+          parent._id === updatedParent._id ? updatedParent : parent,
+        ),
+      );
+      setIsParentEditModalOpen(false);
+      setEditingParent(null);
+    } catch (error) {
+      console.error("Failed to update parent:", error);
+    }
+  };
+
   const filteredGroupStudents = selectedGroupTeacher
     ? students.filter(
         (student) => String(student.teacherId) === selectedGroupTeacher,
@@ -278,6 +472,22 @@ export default function SuperAdminDashboard() {
     const full =
       `${student.firstName} ${student.lastName} ${student.email}`.toLowerCase();
     return full.includes(studentManagementSearchQuery.trim().toLowerCase());
+  });
+
+  const filteredTeacherEdit = teachers.filter((teacher) => {
+    if (!teacherEditSearchQuery || teacherEditSearchQuery.trim() === "")
+      return true;
+    const full =
+      `${teacher.firstName} ${teacher.lastName} ${teacher.email}`.toLowerCase();
+    return full.includes(teacherEditSearchQuery.trim().toLowerCase());
+  });
+
+  const filteredParentEdit = parents.filter((parent) => {
+    if (!parentEditSearchQuery || parentEditSearchQuery.trim() === "")
+      return true;
+    const full =
+      `${parent.firstName} ${parent.lastName} ${parent.email}`.toLowerCase();
+    return full.includes(parentEditSearchQuery.trim().toLowerCase());
   });
 
   return (
@@ -320,6 +530,13 @@ export default function SuperAdminDashboard() {
                     أنشئ معلمين، طلاب وأولياء أمور بسرعة.
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleExportCredentials}
+                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                >
+                  تصدير بيانات الدخول
+                </button>
               </div>
               <form className="space-y-4" onSubmit={handleCreateUser}>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -616,6 +833,182 @@ export default function SuperAdminDashboard() {
                 </div>
               </form>
             </section>
+
+            {/* ========== Teacher Management Section ========== */}
+            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-2xl font-semibold text-slate-900">
+                      إدارة المعلمين
+                    </h2>
+                    <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
+                      {teachers.length} معلم
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    حرر بيانات المعلمين المسجلين.
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={teacherEditSearchQuery}
+                  onChange={(e) => setTeacherEditSearchQuery(e.target.value)}
+                  placeholder="ابحث عن معلم بالاسم أو البريد الإلكتروني..."
+                  className="w-full max-w-sm rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600">
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        الاسم
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        البريد الإلكتروني
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        الهاتف
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        إجراءات
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredTeacherEdit.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="px-4 py-6 text-center text-slate-500"
+                        >
+                          لا يوجد معلمين مطابقين للبحث.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTeacherEdit.map((teacher) => (
+                        <tr key={teacher._id}>
+                          <td className="px-4 py-3">
+                            {teacher.firstName} {teacher.lastName}
+                          </td>
+                          <td className="px-4 py-3">{teacher.email}</td>
+                          <td className="px-4 py-3">{teacher.phone || "—"}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => openTeacherEditModal(teacher)}
+                              className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                            >
+                              تحرير
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* ========== Parent Management Section ========== */}
+            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-2xl font-semibold text-slate-900">
+                      إدارة أولياء الأمور
+                    </h2>
+                    <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
+                      {parents.length} ولي أمر
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    حرر بيانات أولياء الأمور المسجلين.
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={parentEditSearchQuery}
+                  onChange={(e) => setParentEditSearchQuery(e.target.value)}
+                  placeholder="ابحث عن ولي أمر بالاسم أو البريد الإلكتروني..."
+                  className="w-full max-w-sm rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600">
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        الاسم
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        البريد الإلكتروني
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        الهاتف
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        الأبناء
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                        إجراءات
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredParentEdit.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="5"
+                          className="px-4 py-6 text-center text-slate-500"
+                        >
+                          لا يوجد أولياء أمور مطابقين للبحث.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredParentEdit.map((parent) => {
+                        const parentChildren = (parent.childrenIds || [])
+                          .map((id) => {
+                            const sid = String(id?._id || id);
+                            return students.find((s) => s._id === sid);
+                          })
+                          .filter(Boolean);
+                        return (
+                          <tr key={parent._id}>
+                            <td className="px-4 py-3">
+                              {parent.firstName} {parent.lastName}
+                            </td>
+                            <td className="px-4 py-3">{parent.email}</td>
+                            <td className="px-4 py-3">{parent.phone || "—"}</td>
+                            <td className="px-4 py-3">
+                              {parentChildren.length > 0
+                                ? parentChildren
+                                    .map((s) => `${s.firstName} ${s.lastName}`)
+                                    .join("، ")
+                                : "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                onClick={() => openParentEditModal(parent)}
+                                className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                              >
+                                تحرير
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* ========== Student Management Section ========== */}
             <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
                 <div>
@@ -705,6 +1098,286 @@ export default function SuperAdminDashboard() {
               </div>
             </section>
 
+            {/* ===== Teacher Edit Modal ===== */}
+            {isTeacherEditModalOpen && editingTeacher && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+                <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+                  <div className="mb-6 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-900">
+                        تحرير بيانات المعلم
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        عدِّل المعلومات الأساسية للمعلم. اترك كلمة المرور فارغة
+                        للإبقاء عليها كما هي.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTeacherEditModalOpen(false);
+                        setEditingTeacher(null);
+                      }}
+                      className="text-slate-500 hover:text-slate-900"
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleUpdateTeacher} className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الاسم الأول
+                        <input
+                          value={editingTeacher.firstName}
+                          onChange={(e) =>
+                            handleEditingTeacherChange(
+                              "firstName",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="الاسم الأول"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الاسم الأخير
+                        <input
+                          value={editingTeacher.lastName}
+                          onChange={(e) =>
+                            handleEditingTeacherChange(
+                              "lastName",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="الاسم الأخير"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        البريد الإلكتروني
+                        <input
+                          type="email"
+                          value={editingTeacher.email}
+                          onChange={(e) =>
+                            handleEditingTeacherChange("email", e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="معلم@مثال.com"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الهاتف
+                        <input
+                          type="tel"
+                          value={editingTeacher.phone}
+                          onChange={(e) =>
+                            handleEditingTeacherChange("phone", e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="مثال: +966512345678"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-1">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        كلمة المرور الجديدة (اتركها فارغة للإبقاء على الحالية)
+                        <input
+                          type="password"
+                          value={editingTeacher.password}
+                          onChange={(e) =>
+                            handleEditingTeacherChange(
+                              "password",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="كلمة مرور جديدة"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsTeacherEditModalOpen(false);
+                          setEditingTeacher(null);
+                        }}
+                        className="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        type="submit"
+                        className="rounded-2xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700"
+                      >
+                        حفظ التغييرات
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* ===== Parent Edit Modal ===== */}
+            {isParentEditModalOpen && editingParent && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+                <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+                  <div className="mb-6 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-900">
+                        تحرير بيانات ولي الأمر
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        عدِّل المعلومات الأساسية وأبناء ولي الأمر.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsParentEditModalOpen(false);
+                        setEditingParent(null);
+                      }}
+                      className="text-slate-500 hover:text-slate-900"
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleUpdateParent} className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الاسم الأول
+                        <input
+                          value={editingParent.firstName}
+                          onChange={(e) =>
+                            handleEditingParentChange(
+                              "firstName",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="الاسم الأول"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الاسم الأخير
+                        <input
+                          value={editingParent.lastName}
+                          onChange={(e) =>
+                            handleEditingParentChange(
+                              "lastName",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="الاسم الأخير"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        البريد الإلكتروني
+                        <input
+                          type="email"
+                          value={editingParent.email}
+                          onChange={(e) =>
+                            handleEditingParentChange("email", e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="وليأمر@مثال.com"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الهاتف
+                        <input
+                          type="tel"
+                          value={editingParent.phone}
+                          onChange={(e) =>
+                            handleEditingParentChange("phone", e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="مثال: +966512345678"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-1">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        كلمة المرور الجديدة (اتركها فارغة للإبقاء على الحالية)
+                        <input
+                          type="password"
+                          value={editingParent.password}
+                          onChange={(e) =>
+                            handleEditingParentChange(
+                              "password",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="كلمة مرور جديدة"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Children checkboxes in edit modal */}
+                    <div className="space-y-2 text-sm text-slate-700">
+                      <span>الأبناء / الطلاب المرتبطون</span>
+                      <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 max-h-72 overflow-y-auto">
+                        {students.length === 0 ? (
+                          <p className="text-sm text-slate-500">
+                            لا يوجد طلاب مسجلين بعد
+                          </p>
+                        ) : (
+                          students.map((student) => {
+                            const selected = (
+                              editingParent.childrenIds || []
+                            ).includes(student._id);
+                            const labelClass = `inline-flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${selected ? "border-quran-500 bg-quran-50" : "border-slate-200 bg-white"}`;
+                            return (
+                              <label key={student._id} className={labelClass}>
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  onChange={() =>
+                                    handleToggleEditParentChild(student._id)
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-quran-600"
+                                />
+                                <span>{`${student.firstName} ${student.lastName}`}</span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsParentEditModalOpen(false);
+                          setEditingParent(null);
+                        }}
+                        className="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        type="submit"
+                        className="rounded-2xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700"
+                      >
+                        حفظ التغييرات
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* ===== Student Edit Modal ===== */}
             {isStudentEditModalOpen && editingStudent && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
                 <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
@@ -854,6 +1527,179 @@ export default function SuperAdminDashboard() {
                 ) : null}
               </form>
             </section>
+
+            {/* ========== Points System Management Section ========== */}
+            <section className="rounded-3xl bg-white border border-slate-200 p-8 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-slate-900">
+                  إدارة نظام النقاط
+                </h2>
+                <p className="text-sm text-slate-500">
+                  تحكم في نقاط الحضور والتقييمات وخصومات الأخطاء بشكل ديناميكي.
+                </p>
+              </div>
+              <form className="space-y-6" onSubmit={handleSaveSettings}>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3">
+                    نقاط الحضور والغياب
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <label className="space-y-2 text-sm text-slate-700">
+                      نقاط الحضور
+                      <input
+                        type="number"
+                        min="0"
+                        value={settings.attendancePoints}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "attendancePoints",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      خصم الغياب بعذر
+                      <input
+                        type="number"
+                        min="0"
+                        value={settings.excusedAbsencePoints}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "excusedAbsencePoints",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      خصم الغياب بدون عذر
+                      <input
+                        type="number"
+                        min="0"
+                        value={settings.unexcusedAbsencePoints}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "unexcusedAbsencePoints",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3">
+                    نقاط التقييمات
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <label className="space-y-2 text-sm text-slate-700">
+                      ممتاز
+                      <input
+                        type="number"
+                        min="0"
+                        value={settings.gradeExcellentPoints}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "gradeExcellentPoints",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      جيد جداً
+                      <input
+                        type="number"
+                        min="0"
+                        value={settings.gradeVeryGoodPoints}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "gradeVeryGoodPoints",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      جيد
+                      <input
+                        type="number"
+                        min="0"
+                        value={settings.gradeGoodPoints}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "gradeGoodPoints",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      مقبول
+                      <input
+                        type="number"
+                        min="0"
+                        value={settings.gradeAcceptablePoints}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "gradeAcceptablePoints",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3">
+                    الخصومات
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-1 max-w-xs">
+                    <label className="space-y-2 text-sm text-slate-700">
+                      الخصم المستقطع لكل خطأ
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={settings.errorPenaltyMultiplier}
+                        onChange={(e) =>
+                          handleSettingsChange(
+                            "errorPenaltyMultiplier",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
+                  >
+                    حفظ الإعدادات
+                  </button>
+                  {settingsStatus && (
+                    <span className="text-sm text-emerald-700">
+                      {settingsStatus}
+                    </span>
+                  )}
+                </div>
+              </form>
+            </section>
+
             <section className="rounded-3xl bg-white border border-slate-200 p-8 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>

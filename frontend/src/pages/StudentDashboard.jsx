@@ -424,7 +424,7 @@ export default function StudentDashboard() {
       >
         <Navbar role={user?.role} />
         <div className="max-w-4xl mx-auto px-4 py-16">
-          <div className="rounded-3xl bg-white p-8 shadow-sm border border-rose-200 text-rose-700">
+          <div className="rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-rose-200 text-rose-700">
             <h1 className="text-2xl font-semibold">تعذر تحميل لوحة الطالب</h1>
             <p className="mt-4 text-sm">{error}</p>
           </div>
@@ -440,10 +440,10 @@ export default function StudentDashboard() {
     >
       <Navbar role={user?.role} />
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <header className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200 mb-8">
+        <header className="rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 mb-8">
           <AnnouncementsBanner />
-          <div className="mt-8 space-y-6">
-            <div className="rounded-[2rem] bg-gradient-to-r from-lime-400 via-orange-400 to-purple-500 p-8 text-white shadow-[0_30px_60px_rgba(167,243,45,0.25)]">
+          <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:flex-wrap">
+            <div className="rounded-[2rem] bg-gradient-to-r from-lime-400 via-orange-400 to-purple-500 p-6 md:p-8 text-white shadow-[0_30px_60px_rgba(167,243,45,0.25)]">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-sm uppercase tracking-[0.3em] text-white/80">
@@ -564,7 +564,7 @@ export default function StudentDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-3">
                 {avatarOptions.map((avatar) => {
                   const locked = pointsBalance < avatar.threshold;
                   const selected = selectedAvatar === avatar.url;
@@ -606,8 +606,8 @@ export default function StudentDashboard() {
               ) : null}
             </div>
 
-            <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-6 rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 lg:basis-[calc(100%-0.75rem)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-sm text-slate-500">جدار الأوسمة</p>
                   <h3 className="mt-2 text-2xl font-semibold text-slate-900">
@@ -618,7 +618,7 @@ export default function StudentDashboard() {
                   {dashboard.student.badges?.length || 0} وسام
                 </span>
               </div>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-4">
                 {dashboard.student.badges?.length ? (
                   dashboard.student.badges.map((badgeEntry) => (
                     <div
@@ -689,8 +689,8 @@ export default function StudentDashboard() {
           </div>
         </header>
 
-        <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200 mb-8">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 mb-8">
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">
                 التحضير المسبق لدرس اليوم
@@ -751,8 +751,8 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              <div className="rounded-3xl bg-slate-50 p-6 shadow-sm">
-                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="rounded-3xl bg-slate-50 p-4 md:p-6 shadow-sm">
+                <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <p className="text-sm text-slate-500">خريطة الطريق</p>
                     <h3 className="text-2xl font-semibold text-slate-900">
@@ -818,7 +818,7 @@ export default function StudentDashboard() {
               </div>
             </div>
           ) : (
-            <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">
+            <div className="rounded-3xl bg-slate-50 p-4 md:p-6 text-slate-600">
               {dashboard.group
                 ? "لم يتم تعيين منهج لهذه المجموعة بعد."
                 : "لم يتم تسجيلك في حلقة بعد."}
@@ -826,8 +826,8 @@ export default function StudentDashboard() {
           )}
         </section>
 
-        <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200 mb-8">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 mb-8">
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">
                 تحدياتك الحالية
@@ -842,7 +842,7 @@ export default function StudentDashboard() {
           </div>
 
           {challenges.length ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               {challenges.map((challenge) => {
                 const progress = Math.min(
                   100,
@@ -901,7 +901,7 @@ export default function StudentDashboard() {
               })}
             </div>
           ) : (
-            <div className="rounded-3xl bg-slate-50 p-8 text-center text-slate-600">
+            <div className="rounded-3xl bg-slate-50 p-4 md:p-6 text-center text-slate-600">
               <p className="text-lg font-semibold text-slate-900">
                 استعد للتحديات القادمة يا بطل! 💪
               </p>
@@ -919,8 +919,8 @@ export default function StudentDashboard() {
           )}
         </section>
 
-        <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200">
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">
                 سجل التقييمات

@@ -15,8 +15,27 @@ const studentUpdateSchema = Joi.object({
   parentId: objectIdSchema.optional().allow(""),
 });
 
+const teacherUpdateSchema = Joi.object({
+  firstName: Joi.string().optional(),
+  lastName: Joi.string().optional(),
+  email: Joi.string().email().optional(),
+  phone: Joi.string().optional(),
+  password: Joi.string().min(8).optional(),
+});
+
+const parentUpdateSchema = Joi.object({
+  firstName: Joi.string().optional(),
+  lastName: Joi.string().optional(),
+  email: Joi.string().email().optional(),
+  phone: Joi.string().optional(),
+  password: Joi.string().min(8).optional(),
+  childrenIds: Joi.array().items(objectIdSchema).optional(),
+});
+
 module.exports = {
   idParamsSchema,
   groupIdParamsSchema,
   studentUpdateSchema,
+  teacherUpdateSchema,
+  parentUpdateSchema,
 };

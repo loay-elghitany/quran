@@ -1,6 +1,55 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import api from "../api/axios";
 
 export default function PointsSystemGuide() {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await api.get("/settings/gamification");
+        setSettings(response.data.settings);
+      } catch (err) {
+        console.error("فشل تحميل إعدادات النقاط:", err);
+        setError("تعذر تحميل إعدادات نظام النقاط.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm text-slate-800">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-4">
+          كيف يتم حساب النقاط؟
+        </h2>
+        <div className="flex justify-center py-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-quran-600 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm text-slate-800">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-4">
+          كيف يتم حساب النقاط؟
+        </h2>
+        <div className="rounded-3xl bg-rose-50 p-4 text-rose-700 text-sm">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  const s = settings;
+
   return (
     <div className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm text-slate-800">
       <h2 className="text-2xl font-semibold text-slate-900 mb-4">
@@ -12,14 +61,27 @@ export default function PointsSystemGuide() {
           <ul className="space-y-1">
             <li>
               • حاضر:{" "}
-              <span className="font-semibold text-quran-700">+10 نقاط</span>
+              <span className="font-semibold text-quran-700">
+                +{s.attendancePoints} نقاط
+              </span>
             </li>
             <li>
-              • متأخر:{" "}
-              <span className="font-semibold text-quran-700">+5 نقاط</span>
+              • غائب بعذر:{" "}
+              <span className="font-semibold text-quran-700">
+                {s.excusedAbsencePoints > 0
+                  ? `+${s.excusedAbsencePoints} نقاط`
+                  : `${s.excusedAbsencePoints} نقطة`}
+              </span>
             </li>
             <li className="text-red-600">
-              • الغياب: خصم 20 نقطة <span className="font-semibold">(-20)</span>
+              • غائب بدون عذر:{" "}
+              <span className="font-semibold">
+                {s.unexcusedAbsencePoints > 0
+                  ? `+${s.unexcusedAbsencePoints}`
+                  : s.unexcusedAbsencePoints}{" "}
+                نقطة
+                {s.unexcusedAbsencePoints < 0 ? " (خصم)" : ""}
+              </span>
             </li>
           </ul>
         </div>
@@ -28,15 +90,27 @@ export default function PointsSystemGuide() {
           <ul className="space-y-1">
             <li>
               • ممتاز:{" "}
-              <span className="font-semibold text-quran-700">+50 نقطة</span>
+              <span className="font-semibold text-quran-700">
+                +{s.gradeExcellentPoints} نقاط
+              </span>
             </li>
             <li>
               • جيد جداً:{" "}
-              <span className="font-semibold text-quran-700">+40 نقطة</span>
+              <span className="font-semibold text-quran-700">
+                +{s.gradeVeryGoodPoints} نقاط
+              </span>
             </li>
             <li>
               • جيد:{" "}
-              <span className="font-semibold text-quran-700">+20 نقطة</span>
+              <span className="font-semibold text-quran-700">
+                +{s.gradeGoodPoints} نقاط
+              </span>
+            </li>
+            <li>
+              • مقبول:{" "}
+              <span className="font-semibold text-quran-700">
+                +{s.gradeAcceptablePoints} نقاط
+              </span>
             </li>
           </ul>
         </div>
@@ -44,7 +118,9 @@ export default function PointsSystemGuide() {
           <p className="font-semibold text-slate-900 mb-2">الأخطاء</p>
           <p>
             • يتم خصم{" "}
-            <span className="font-semibold text-quran-700">نقطتين (-2)</span>{" "}
+            <span className="font-semibold text-quran-700">
+              {s.errorPenaltyMultiplier} نقطة
+            </span>{" "}
             لكل خطأ أو تنبيه.
           </p>
         </div>
