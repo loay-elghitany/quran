@@ -173,9 +173,9 @@ export default function RewardsStore() {
   };
 
   return (
-    <div className="min-h-screen space-y-8 px-4 py-6 lg:px-10">
+    <div className="min-h-screen w-full min-w-0 space-y-8 px-4 py-6 lg:px-10">
       <Navbar role={userRole} />
-      <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm w-full min-w-0">
         <h1 className="text-3xl font-semibold text-slate-900">متجر المكافآت</h1>
         <p className="mt-2 text-slate-600">
           استعرض النقاط المتاحة والمكافآت المتوفرة واطلب الاستبدال بسهولة.
@@ -218,12 +218,12 @@ export default function RewardsStore() {
       ) : userRole === "Student" ||
         userRole === "SuperAdmin" ||
         userRole === "Admin" ? (
-        <div className="grid gap-6 xl:grid-cols-2">
-          <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm">
+        <div className="grid gap-6 xl:grid-cols-2 w-full min-w-0">
+          <div className="rounded-3xl border border-quran-200 bg-white p-6 shadow-sm w-full min-w-0">
             <h2 className="text-xl font-semibold text-slate-900">
               المكافآت المتاحة
             </h2>
-            <div className="mt-5 grid gap-4">
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {rewards.length === 0 ? (
                 <p className="text-slate-600">لا توجد مكافآت متاحة.</p>
               ) : (

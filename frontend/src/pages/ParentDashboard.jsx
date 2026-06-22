@@ -97,7 +97,7 @@ export default function ParentDashboard() {
   if (loading) {
     return (
       <div
-        className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+        className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-900 font-cairo"
         dir="rtl"
       >
         <Navbar role={user?.role} />
@@ -111,11 +111,11 @@ export default function ParentDashboard() {
   if (error) {
     return (
       <div
-        className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+        className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-900 font-cairo"
         dir="rtl"
       >
         <Navbar role={user?.role} />
-        <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="w-full max-w-full mx-auto px-4 py-16">
           <div className="rounded-3xl bg-white p-8 shadow-sm border border-rose-200 text-rose-700">
             <h1 className="text-2xl font-semibold">
               تعذر تحميل لوحة ولي الأمر
@@ -129,11 +129,11 @@ export default function ParentDashboard() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+      className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-900 font-cairo"
       dir="rtl"
     >
       <Navbar role={user?.role} />
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="w-full max-w-full mx-auto px-4 py-8">
         <header className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200 mb-8">
           <AnnouncementsBanner />
           <div className="mt-8">
@@ -287,45 +287,48 @@ export default function ParentDashboard() {
                     key={child._id}
                     className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm"
                   >
-                  <div className="flex flex-col gap-4">
-                    <div>
-                      <p className="text-sm text-slate-500">الابن / الطالبة</p>
-                      <h3 className="mt-2 text-2xl font-semibold text-slate-900">
-                        {child.firstName} {child.lastName}
-                      </h3>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
-                        <p className="text-slate-500">المعلم</p>
-                        <p className="mt-2 font-semibold text-slate-900">
-                          {child.teacherId
-                            ? `${child.teacherId.firstName} ${child.teacherId.lastName}`
-                            : "غير محدد"}
+                    <div className="flex flex-col gap-4">
+                      <div>
+                        <p className="text-sm text-slate-500">
+                          الابن / الطالبة
                         </p>
+                        <h3 className="mt-2 text-2xl font-semibold text-slate-900">
+                          {child.firstName} {child.lastName}
+                        </h3>
                       </div>
-                      <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
-                        <p className="text-slate-500">الحلقة</p>
-                        <p className="mt-2 font-semibold text-slate-900">
-                          {child.group ? child.group.name : "لم تسجل بعد"}
-                        </p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
+                          <p className="text-slate-500">المعلم</p>
+                          <p className="mt-2 font-semibold text-slate-900">
+                            {child.teacherId
+                              ? `${child.teacherId.firstName} ${child.teacherId.lastName}`
+                              : "غير محدد"}
+                          </p>
+                        </div>
+                        <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
+                          <p className="text-slate-500">الحلقة</p>
+                          <p className="mt-2 font-semibold text-slate-900">
+                            {child.group ? child.group.name : "لم تسجل بعد"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="rounded-3xl bg-quran-100 px-4 py-2 text-sm font-semibold text-quran-800">
+                          عدد التقييمات {child.evaluations.length}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openChildModal(child)}
+                          className="rounded-3xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
+                        >
+                          عرض السجل
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="rounded-3xl bg-quran-100 px-4 py-2 text-sm font-semibold text-quran-800">
-                        عدد التقييمات {child.evaluations.length}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => openChildModal(child)}
-                        className="rounded-3xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
-                      >
-                        عرض السجل
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  </article>
+                ))}
+              </div>
+            </>
           )}
         </section>
 
@@ -335,8 +338,8 @@ export default function ParentDashboard() {
       </div>
 
       {selectedChild && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/70 px-4 py-8 sm:items-center sm:px-6 sm:py-12">
-          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl max-h-[calc(100vh-4rem)]">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex flex-col gap-4 border-b border-slate-200 bg-quran-600 px-6 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm">سجل تقييمات الطالب</p>

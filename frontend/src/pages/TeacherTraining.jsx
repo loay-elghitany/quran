@@ -90,7 +90,7 @@ export default function TeacherTraining() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+      className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-900 font-cairo"
       dir="rtl"
     >
       <Navbar role={user?.role} />

@@ -435,11 +435,11 @@ export default function StudentDashboard() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+      className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-900 font-cairo"
       dir="rtl"
     >
       <Navbar role={user?.role} />
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="w-full max-w-full mx-auto px-4 py-8">
         <header className="rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 mb-8">
           <AnnouncementsBanner />
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:flex-wrap">
@@ -606,7 +606,7 @@ export default function StudentDashboard() {
               ) : null}
             </div>
 
-            <div className="mt-6 rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 lg:basis-[calc(100%-0.75rem)]">
+            <div className="mt-6 rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 mb-8 w-full">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-sm text-slate-500">جدار الأوسمة</p>
@@ -764,7 +764,7 @@ export default function StudentDashboard() {
                     {todayLesson.totalLessons}
                   </span>
                 </div>
-                <div className="relative border-l-2 border-dashed border-slate-300 pl-8">
+                <div className="relative border-r-2 border-dashed border-slate-300 pr-8 overflow-hidden">
                   {todayLesson.curriculum.lessons.map((lesson, index) => {
                     const status =
                       index < todayLesson.currentLessonIndex
@@ -790,12 +790,12 @@ export default function StudentDashboard() {
                         className="mb-8 relative"
                       >
                         <span
-                          className={`absolute -left-7 top-2 flex h-12 w-12 items-center justify-center rounded-full border-2 ${statusClasses}`}
+                          className={`absolute -right-7 top-2 flex h-12 w-12 items-center justify-center rounded-full border-2 ${statusClasses}`}
                         >
                           {badgeIcon}
                         </span>
                         <div
-                          className={`rounded-3xl border p-5 pl-16 ${
+                          className={`rounded-3xl border p-5 pr-16 ${
                             status === "current"
                               ? "border-orange-200 bg-orange-50"
                               : "border-slate-200 bg-white"
@@ -1015,8 +1015,8 @@ export default function StudentDashboard() {
         </section>
 
         {complaintsModalOpen ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4">
-            <div className="max-h-[95vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto ring-1 ring-slate-200">
               <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-semibold text-slate-900">

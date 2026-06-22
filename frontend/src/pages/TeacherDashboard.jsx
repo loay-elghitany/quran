@@ -484,12 +484,12 @@ export default function TeacherDashboard() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+      className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-900 font-cairo"
       dir="rtl"
     >
       <Navbar role={user?.role} />
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <header className="mb-8 rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+      <div className="w-full max-w-full mx-auto px-4 py-6">
+        <header className="mb-8 rounded-3xl bg-white p-6 md:p-8 shadow-sm border border-slate-200 overflow-hidden">
           <AnnouncementsBanner />
           <div className="mt-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -656,59 +656,64 @@ export default function TeacherDashboard() {
                       <div className="overflow-x-auto w-full">
                         <ul className="min-w-full space-y-4">
                           {(group?.students || group?.studentIds || []).map(
-                            (student) => (
-                              <li
-                                key={student._id}
-                                className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-                              >
-                              <div>
-                                <p className="text-base font-semibold text-slate-900">
-                                  {student.firstName} {student.lastName}
-                                </p>
-                                <p className="text-sm text-slate-500">
-                                  طالب في الحلقة {group.name}
-                                </p>
-                              </div>
-                              <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="rounded-full bg-quran-100 px-3 py-2 text-xs font-semibold text-quran-800">
-                                    الأوسمة: {student.badges?.length || 0}
-                                  </span>
-                                  <span className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
-                                    سلسلة:{" "}
-                                    {student.evaluationStreak?.count || 0}
-                                  </span>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      openEvaluationModal(student, group)
-                                    }
-                                    className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-quran-700"
-                                  >
-                                    إضافة تقييم يومي
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openHistoryModal(student)}
-                                    className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                                  >
-                                    سجل التقييمات
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openBadgeModal(student)}
-                                    className="inline-flex items-center justify-center rounded-2xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-                                  >
-                                    منح وسام
-                                  </button>
-                                </div>
-                              </div>
-                            </li>
-                          ),
-                        )}
-                      </ul>
+                            (student) => {
+                              return (
+                                <li
+                                  key={student._id}
+                                  className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                  <div>
+                                    <p className="text-base font-semibold text-slate-900">
+                                      {student.firstName} {student.lastName}
+                                    </p>
+                                    <p className="text-sm text-slate-500">
+                                      طالب في الحلقة {group.name}
+                                    </p>
+                                  </div>
+                                  <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="rounded-full bg-quran-100 px-3 py-2 text-xs font-semibold text-quran-800">
+                                        الأوسمة: {student.badges?.length || 0}
+                                      </span>
+                                      <span className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
+                                        سلسلة:{" "}
+                                        {student.evaluationStreak?.count || 0}
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          openEvaluationModal(student, group)
+                                        }
+                                        className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-quran-700"
+                                      >
+                                        إضافة تقييم يومي
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          openHistoryModal(student)
+                                        }
+                                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                                      >
+                                        سجل التقييمات
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => openBadgeModal(student)}
+                                        className="inline-flex items-center justify-center rounded-2xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                                      >
+                                        منح وسام
+                                      </button>
+                                    </div>
+                                  </div>
+                                </li>
+                              );
+                            },
+                          )}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 </section>
@@ -725,8 +730,8 @@ export default function TeacherDashboard() {
       </div>
 
       {modalOpen && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-6">
-          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 bg-quran-600 px-6 py-5 text-white">
               <div>
                 <p className="text-sm">إضافة تقييم يومي</p>
@@ -953,8 +958,8 @@ export default function TeacherDashboard() {
       )}
 
       {complaintsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4 py-6">
-          <div className="max-h-[95vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto ring-1 ring-slate-200">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-semibold text-slate-900">
@@ -1152,8 +1157,8 @@ export default function TeacherDashboard() {
       )}
 
       {badgeModalOpen && selectedBadgeStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 bg-orange-500 px-6 py-5 text-white">
               <div>
                 <p className="text-sm">منح وسام</p>
@@ -1242,8 +1247,8 @@ export default function TeacherDashboard() {
       )}
 
       {historyOpen && historyStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4 py-6">
-          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex flex-col gap-4 border-b border-slate-200 bg-quran-600 px-6 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm">سجل تقييمات الطالب</p>

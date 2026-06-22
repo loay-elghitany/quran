@@ -491,9 +491,9 @@ export default function SuperAdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-800">
+    <div className="min-h-screen w-full min-w-0 bg-gray-50 text-slate-800">
       <Navbar role={user?.role} />
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="w-full max-w-full mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           <aside className="w-full lg:w-1/4 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
             <div className="text-sm uppercase tracking-[0.3em] text-slate-500 mb-4">
@@ -1100,8 +1100,8 @@ export default function SuperAdminDashboard() {
 
             {/* ===== Teacher Edit Modal ===== */}
             {isTeacherEditModalOpen && editingTeacher && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-                <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
                   <div className="mb-6 flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-semibold text-slate-900">
@@ -1224,8 +1224,8 @@ export default function SuperAdminDashboard() {
 
             {/* ===== Parent Edit Modal ===== */}
             {isParentEditModalOpen && editingParent && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-                <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
                   <div className="mb-6 flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-semibold text-slate-900">
@@ -1379,8 +1379,8 @@ export default function SuperAdminDashboard() {
 
             {/* ===== Student Edit Modal ===== */}
             {isStudentEditModalOpen && editingStudent && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-                <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
                   <div className="mb-6 flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-semibold text-slate-900">

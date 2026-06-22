@@ -50,7 +50,7 @@ export default function Leaderboard() {
   if (loading) {
     return (
       <div
-        className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+        className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-900 font-cairo"
         dir="rtl"
       >
         <Navbar role={user?.role} />
@@ -63,11 +63,11 @@ export default function Leaderboard() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 text-slate-900 font-cairo"
+      className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-900 font-cairo"
       dir="rtl"
     >
       <Navbar role={user?.role} />
-      <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
+      <div className="max-w-7xl mx-auto w-full min-w-0 px-4 py-10 space-y-8">
         <header className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
           <h1 className="text-4xl font-semibold text-slate-900">
             قائمة المتصدرين
@@ -85,96 +85,99 @@ export default function Leaderboard() {
           </div>
         ) : (
           <>
-            <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-              <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
-                <div className="mb-6 flex flex-col gap-2">
-                  <h2 className="text-3xl font-semibold text-slate-900">
-                    فرسان الأكاديمية
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    أفضل 10 طلاب بناءً على النقاط المكتسبة من التقييمات اليومية.
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  {students.length === 0 ? (
-                    <div className="rounded-3xl bg-slate-50 p-10 text-center text-slate-600">
-                      لا توجد بيانات متاحة حتى الآن.
-                    </div>
-                  ) : (
-                    students.map((student, index) => (
-                      <div
-                        key={student.studentId}
-                        className="flex items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="text-3xl">
-                            {medals[index] || `#${index + 1}`}
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-500">الطالب</p>
-                            <p className="text-lg font-semibold text-slate-900">
-                              {student.firstName} {student.lastName}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="rounded-3xl bg-quran-100 px-4 py-3 text-right text-sm font-semibold text-quran-800">
-                          {formatNumber(student.totalPoints)} نقطة
-                        </div>
+            <div className="w-full overflow-x-auto">
+              <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr] min-w-0">
+                <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200 min-w-0">
+                  <div className="mb-6 flex flex-col gap-2">
+                    <h2 className="text-3xl font-semibold text-slate-900">
+                      فرسان الأكاديمية
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      أفضل 10 طلاب بناءً على النقاط المكتسبة من التقييمات
+                      اليومية.
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    {students.length === 0 ? (
+                      <div className="rounded-3xl bg-slate-50 p-10 text-center text-slate-600">
+                        لا توجد بيانات متاحة حتى الآن.
                       </div>
-                    ))
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
-                <div className="mb-6 flex flex-col gap-2">
-                  <h2 className="text-3xl font-semibold text-slate-900">
-                    أفضل الحلقات
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    أعلى 5 حلقات حسب مجموع نقاط طلابها اليومية.
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  {groups.length === 0 ? (
-                    <div className="rounded-3xl bg-slate-50 p-10 text-center text-slate-600">
-                      لا توجد بيانات للحلقات حتى الآن.
-                    </div>
-                  ) : (
-                    groups.map((group, index) => (
-                      <div
-                        key={group.groupId}
-                        className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm"
-                      >
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    ) : (
+                      students.map((student, index) => (
+                        <div
+                          key={student.studentId}
+                          className="flex items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm"
+                        >
                           <div className="flex items-center gap-4">
                             <div className="text-3xl">
                               {medals[index] || `#${index + 1}`}
                             </div>
                             <div>
-                              <p className="text-sm text-slate-500">الحلقة</p>
+                              <p className="text-sm text-slate-500">الطالب</p>
                               <p className="text-lg font-semibold text-slate-900">
-                                {group.groupName}
+                                {student.firstName} {student.lastName}
                               </p>
                             </div>
                           </div>
-                          <div className="rounded-3xl bg-white px-4 py-3 text-right text-sm font-semibold text-slate-700 shadow-sm">
-                            <p>المعلم</p>
-                            <p className="mt-1 text-slate-900">
-                              {group.teacher?.firstName
-                                ? `${group.teacher.firstName} ${group.teacher.lastName}`
-                                : "غير محدد"}
-                            </p>
+                          <div className="rounded-3xl bg-quran-100 px-4 py-3 text-right text-sm font-semibold text-quran-800">
+                            {formatNumber(student.totalPoints)} نقطة
                           </div>
                         </div>
-                        <div className="mt-4 rounded-3xl bg-quran-100 px-4 py-3 text-sm font-semibold text-quran-800">
-                          مجموع النقاط: {formatNumber(group.totalPoints)} نقطة
-                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+                  <div className="mb-6 flex flex-col gap-2">
+                    <h2 className="text-3xl font-semibold text-slate-900">
+                      أفضل الحلقات
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      أعلى 5 حلقات حسب مجموع نقاط طلابها اليومية.
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    {groups.length === 0 ? (
+                      <div className="rounded-3xl bg-slate-50 p-10 text-center text-slate-600">
+                        لا توجد بيانات للحلقات حتى الآن.
                       </div>
-                    ))
-                  )}
-                </div>
-              </section>
+                    ) : (
+                      groups.map((group, index) => (
+                        <div
+                          key={group.groupId}
+                          className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm"
+                        >
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="text-3xl">
+                                {medals[index] || `#${index + 1}`}
+                              </div>
+                              <div>
+                                <p className="text-sm text-slate-500">الحلقة</p>
+                                <p className="text-lg font-semibold text-slate-900">
+                                  {group.groupName}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="rounded-3xl bg-white px-4 py-3 text-right text-sm font-semibold text-slate-700 shadow-sm">
+                              <p>المعلم</p>
+                              <p className="mt-1 text-slate-900">
+                                {group.teacher?.firstName
+                                  ? `${group.teacher.firstName} ${group.teacher.lastName}`
+                                  : "غير محدد"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-4 rounded-3xl bg-quran-100 px-4 py-3 text-sm font-semibold text-quran-800">
+                            مجموع النقاط: {formatNumber(group.totalPoints)} نقطة
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              </div>
             </div>
 
             <div className="mt-6">
