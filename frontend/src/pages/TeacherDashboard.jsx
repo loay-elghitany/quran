@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import AnnouncementsBanner from "../components/AnnouncementsBanner";
 
 const attendanceOptions = ["حاضر", "غائب بعذر", "غائب بدون عذر"];
-const gradeOptions = ["ممتاز", "جيد جدًا", "جيد", "يحتاج مراجعة"];
+const gradeOptions = ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"];
 
 const ticketTypeOptions = [
   { value: "Complaint", label: "شكوى" },
@@ -49,7 +49,7 @@ const defaultEvaluation = {
   revisionFrom: "",
   revisionTo: "",
   mistakes: 0,
-  grade: "ممتاز",
+  grade: "10",
   notes: "",
 };
 

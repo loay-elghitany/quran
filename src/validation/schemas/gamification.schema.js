@@ -45,10 +45,28 @@ const mysteryBoxConfigSchema = Joi.object({
   isActive: Joi.boolean().optional(),
 }).min(1);
 
+const gamificationSettingsSchema = Joi.object({
+  attendancePoints: Joi.number().integer().min(0).optional(),
+  excusedAbsencePoints: Joi.number().integer().min(0).optional(),
+  unexcusedAbsencePoints: Joi.number().integer().min(0).optional(),
+  errorPenaltyMultiplier: Joi.number().integer().min(0).optional(),
+  score_1: Joi.number().integer().min(0).optional(),
+  score_2: Joi.number().integer().min(0).optional(),
+  score_3: Joi.number().integer().min(0).optional(),
+  score_4: Joi.number().integer().min(0).optional(),
+  score_5: Joi.number().integer().min(0).optional(),
+  score_6: Joi.number().integer().min(0).optional(),
+  score_7: Joi.number().integer().min(0).optional(),
+  score_8: Joi.number().integer().min(0).optional(),
+  score_9: Joi.number().integer().min(0).optional(),
+  score_10: Joi.number().integer().min(0).optional(),
+}).min(1);
+
 module.exports = {
   badgeCreateSchema,
   badgeUpdateSchema,
   challengeCreateSchema,
   challengeUpdateSchema,
   mysteryBoxConfigSchema,
+  gamificationSettingsSchema,
 };

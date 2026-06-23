@@ -49,10 +49,16 @@ export default function AdminGamification() {
     attendancePoints: 5,
     excusedAbsencePoints: 0,
     unexcusedAbsencePoints: 0,
-    gradeExcellentPoints: 10,
-    gradeVeryGoodPoints: 8,
-    gradeGoodPoints: 5,
-    gradeAcceptablePoints: 2,
+    score_1: 1,
+    score_2: 2,
+    score_3: 3,
+    score_4: 4,
+    score_5: 5,
+    score_6: 6,
+    score_7: 7,
+    score_8: 8,
+    score_9: 9,
+    score_10: 10,
     errorPenaltyMultiplier: 1,
   });
   const [settingsMessage, setSettingsMessage] = useState("");
@@ -188,10 +194,16 @@ export default function AdminGamification() {
         attendancePoints: s.attendancePoints ?? 5,
         excusedAbsencePoints: s.excusedAbsencePoints ?? 0,
         unexcusedAbsencePoints: s.unexcusedAbsencePoints ?? 0,
-        gradeExcellentPoints: s.gradeExcellentPoints ?? 10,
-        gradeVeryGoodPoints: s.gradeVeryGoodPoints ?? 8,
-        gradeGoodPoints: s.gradeGoodPoints ?? 5,
-        gradeAcceptablePoints: s.gradeAcceptablePoints ?? 2,
+        score_1: s.score_1 ?? 1,
+        score_2: s.score_2 ?? 2,
+        score_3: s.score_3 ?? 3,
+        score_4: s.score_4 ?? 4,
+        score_5: s.score_5 ?? 5,
+        score_6: s.score_6 ?? 6,
+        score_7: s.score_7 ?? 7,
+        score_8: s.score_8 ?? 8,
+        score_9: s.score_9 ?? 9,
+        score_10: s.score_10 ?? 10,
         errorPenaltyMultiplier: s.errorPenaltyMultiplier ?? 1,
       });
     } catch (error) {
@@ -632,67 +644,30 @@ export default function AdminGamification() {
                     <p className="font-semibold text-slate-900 mb-3">
                       نقاط التقييم
                     </p>
-                    <div className="grid gap-3">
-                      <label className="block text-sm text-slate-700">
-                        ممتاز
-                        <input
-                          type="number"
-                          value={settingsForm.gradeExcellentPoints}
-                          onChange={(e) =>
-                            handleSettingsFieldChange(
-                              "gradeExcellentPoints",
-                              e.target.value,
-                            )
-                          }
-                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
-                          min={0}
-                        />
-                      </label>
-                      <label className="block text-sm text-slate-700">
-                        جيد جداً
-                        <input
-                          type="number"
-                          value={settingsForm.gradeVeryGoodPoints}
-                          onChange={(e) =>
-                            handleSettingsFieldChange(
-                              "gradeVeryGoodPoints",
-                              e.target.value,
-                            )
-                          }
-                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
-                          min={0}
-                        />
-                      </label>
-                      <label className="block text-sm text-slate-700">
-                        جيد
-                        <input
-                          type="number"
-                          value={settingsForm.gradeGoodPoints}
-                          onChange={(e) =>
-                            handleSettingsFieldChange(
-                              "gradeGoodPoints",
-                              e.target.value,
-                            )
-                          }
-                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
-                          min={0}
-                        />
-                      </label>
-                      <label className="block text-sm text-slate-700">
-                        مقبول
-                        <input
-                          type="number"
-                          value={settingsForm.gradeAcceptablePoints}
-                          onChange={(e) =>
-                            handleSettingsFieldChange(
-                              "gradeAcceptablePoints",
-                              e.target.value,
-                            )
-                          }
-                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
-                          min={0}
-                        />
-                      </label>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                      {Array.from({ length: 10 }, (_, index) => {
+                        const scoreKey = `score_${index + 1}`;
+                        return (
+                          <label
+                            key={scoreKey}
+                            className="block text-sm text-slate-700"
+                          >
+                            درجة {index + 1} من 10
+                            <input
+                              type="number"
+                              value={settingsForm[scoreKey] ?? 0}
+                              onChange={(e) =>
+                                handleSettingsFieldChange(
+                                  scoreKey,
+                                  e.target.value,
+                                )
+                              }
+                              className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                              min={0}
+                            />
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -771,30 +746,17 @@ export default function AdminGamification() {
                 <div className="rounded-3xl bg-quran-50 p-4">
                   <p className="font-semibold text-slate-900 mb-2">التقييم</p>
                   <ul className="space-y-1">
-                    <li>
-                      • ممتاز:{" "}
-                      <span className="font-semibold text-quran-700">
-                        +{settingsForm.gradeExcellentPoints} نقاط
-                      </span>
-                    </li>
-                    <li>
-                      • جيد جداً:{" "}
-                      <span className="font-semibold text-quran-700">
-                        +{settingsForm.gradeVeryGoodPoints} نقاط
-                      </span>
-                    </li>
-                    <li>
-                      • جيد:{" "}
-                      <span className="font-semibold text-quran-700">
-                        +{settingsForm.gradeGoodPoints} نقاط
-                      </span>
-                    </li>
-                    <li>
-                      • مقبول:{" "}
-                      <span className="font-semibold text-quran-700">
-                        +{settingsForm.gradeAcceptablePoints} نقاط
-                      </span>
-                    </li>
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const scoreKey = `score_${index + 1}`;
+                      return (
+                        <li key={scoreKey}>
+                          • درجة {index + 1} من 10:{" "}
+                          <span className="font-semibold text-quran-700">
+                            +{settingsForm[scoreKey]} نقاط
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
                 <div className="rounded-3xl bg-quran-50 p-4">

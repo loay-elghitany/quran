@@ -39,8 +39,15 @@ const EvaluationSchema = new Schema({
     default: 0,
   },
   grade: {
-    type: String,
-    trim: true,
+    type: Schema.Types.Mixed,
+    validate: {
+      validator: (value) =>
+        value === undefined ||
+        value === null ||
+        typeof value === "number" ||
+        typeof value === "string",
+      message: "Grade must be a number or string.",
+    },
   },
   audioNote: {
     type: String,

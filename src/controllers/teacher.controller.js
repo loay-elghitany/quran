@@ -160,21 +160,49 @@ const createEvaluation = async (req, res, next) => {
       settings = await SystemSettings.create({});
     }
 
+    const parsedGrade =
+      grade !== undefined && grade !== null && String(grade).trim() !== ""
+        ? Number(grade)
+        : grade;
+    const normalizedGrade =
+      parsedGrade !== undefined && !Number.isNaN(parsedGrade)
+        ? parsedGrade
+        : grade;
+
     let points = 0;
-    if (attendanceStatus === "حاضر") {
-      // Base from grade + attendance points - error penalty
-      const gradeScores = {
-        ممتاز: settings.gradeExcellentPoints,
-        "جيد جداً": settings.gradeVeryGoodPoints,
-        جيد: settings.gradeGoodPoints,
-        مقبول: settings.gradeAcceptablePoints,
+    const isUnexcusedAbsence = attendanceStatus === "غائب بدون عذر";
+    const isExcusedAbsence = attendanceStatus === "غائب بعذر";
+    const isPresent = attendanceStatus === "حاضر";
+
+    if (isUnexcusedAbsence) {
+      points = settings.unexcusedAbsencePoints || 0;
+    } else if (isExcusedAbsence) {
+      points = settings.excusedAbsencePoints || 0;
+    } else if (isPresent) {
+      const scoreKey =
+        typeof normalizedGrade === "number" &&
+        Number.isInteger(normalizedGrade) &&
+        normalizedGrade >= 1 &&
+        normalizedGrade <= 10
+          ? `score_${normalizedGrade}`
+          : null;
+
+      const fallbackGradeScores = {
+        ممتاز: settings.score_10 ?? 10,
+        "جيد جداً": settings.score_8 ?? 8,
+        جيد: settings.score_5 ?? 5,
+        مقبول: settings.score_2 ?? 2,
       };
-      points = (gradeScores[grade] || 0) + settings.attendancePoints;
-      points -= (mistakes || 0) * settings.errorPenaltyMultiplier;
-    } else if (attendanceStatus === "غائب بعذر") {
-      points = settings.excusedAbsencePoints;
-    } else if (attendanceStatus === "غائب بدون عذر") {
-      points = settings.unexcusedAbsencePoints;
+
+      const gradePoints =
+        scoreKey && settings[scoreKey] !== undefined
+          ? settings[scoreKey]
+          : fallbackGradeScores[grade] || 0;
+
+      points =
+        (gradePoints || 0) +
+        (settings.attendancePoints || 0) -
+        (mistakes || 0) * (settings.errorPenaltyMultiplier || 1);
     }
     const earnedPoints = Math.max(0, points);
 
@@ -193,7 +221,7 @@ const createEvaluation = async (req, res, next) => {
         to: revisionTo,
       },
       mistakes,
-      grade,
+      grade: normalizedGrade,
       notes,
       audioNote: req.file?.path || undefined,
     });

@@ -58,6 +58,7 @@ const {
   challengeCreateSchema,
   challengeUpdateSchema,
   mysteryBoxConfigSchema,
+  gamificationSettingsSchema,
 } = require("../validation/schemas/gamification.schema");
 const {
   rewardCreateSchema,
@@ -207,6 +208,10 @@ router.put(
 
 // System Settings - Gamification
 router.get("/settings/gamification", getSystemSettings);
-router.put("/settings/gamification", updateSystemSettings);
+router.put(
+  "/settings/gamification",
+  validateBody(gamificationSettingsSchema),
+  updateSystemSettings,
+);
 
 module.exports = router;

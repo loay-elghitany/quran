@@ -88,30 +88,17 @@ export default function PointsSystemGuide() {
         <div className="rounded-3xl bg-quran-50 p-4">
           <p className="font-semibold text-slate-900 mb-2">التقييم</p>
           <ul className="space-y-1">
-            <li>
-              • ممتاز:{" "}
-              <span className="font-semibold text-quran-700">
-                +{s.gradeExcellentPoints} نقاط
-              </span>
-            </li>
-            <li>
-              • جيد جداً:{" "}
-              <span className="font-semibold text-quran-700">
-                +{s.gradeVeryGoodPoints} نقاط
-              </span>
-            </li>
-            <li>
-              • جيد:{" "}
-              <span className="font-semibold text-quran-700">
-                +{s.gradeGoodPoints} نقاط
-              </span>
-            </li>
-            <li>
-              • مقبول:{" "}
-              <span className="font-semibold text-quran-700">
-                +{s.gradeAcceptablePoints} نقاط
-              </span>
-            </li>
+            {Array.from({ length: 10 }, (_, index) => {
+              const scoreKey = `score_${index + 1}`;
+              return (
+                <li key={scoreKey}>
+                  • درجة {index + 1} من 10:{" "}
+                  <span className="font-semibold text-quran-700">
+                    +{s[scoreKey]} نقاط
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
         <div className="rounded-3xl bg-quran-50 p-4">

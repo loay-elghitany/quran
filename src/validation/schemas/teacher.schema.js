@@ -27,15 +27,24 @@ const assignmentCreateSchema = Joi.object({
 const evaluationCreateSchema = Joi.object({
   studentId: objectIdSchema,
   groupId: objectIdSchema,
-  attendanceStatus: Joi.string().valid("حاضر", "متأخر", "غائب").required(),
+  attendanceStatus: Joi.string()
+    .valid("حاضر", "متأخر", "غائب", "غائب بعذر", "غائب بدون عذر")
+    .required(),
   memorizationFrom: Joi.string().trim().max(100).optional().allow(""),
   memorizationTo: Joi.string().trim().max(100).optional().allow(""),
   revisionFrom: Joi.string().trim().max(100).optional().allow(""),
   revisionTo: Joi.string().trim().max(100).optional().allow(""),
   mistakes: Joi.number().integer().min(0).optional(),
-  grade: Joi.string()
-    .valid("ممتاز", "جيد جداً", "جيد", "يحتاج مراجعة")
-    .required(),
+  grade: Joi.alternatives()
+    .try(
+      Joi.number().integer().min(1).max(10),
+      Joi.string().pattern(/^([1-9]|10)$/),
+    )
+    .required()
+    .messages({
+      "alternatives.match":
+        "الدرجة يجب أن تكون رقماً من 1 إلى 10 أو نصاً يطابق 1-10",
+    }),
   notes: Joi.string().trim().max(2000).optional().allow(""),
 });
 

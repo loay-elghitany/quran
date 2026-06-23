@@ -43,10 +43,16 @@ export default function SuperAdminDashboard() {
     attendancePoints: 5,
     excusedAbsencePoints: 0,
     unexcusedAbsencePoints: 0,
-    gradeExcellentPoints: 10,
-    gradeVeryGoodPoints: 8,
-    gradeGoodPoints: 5,
-    gradeAcceptablePoints: 2,
+    score_1: 1,
+    score_2: 2,
+    score_3: 3,
+    score_4: 4,
+    score_5: 5,
+    score_6: 6,
+    score_7: 7,
+    score_8: 8,
+    score_9: 9,
+    score_10: 10,
     errorPenaltyMultiplier: 1,
   });
   const [settingsStatus, setSettingsStatus] = useState("");
@@ -111,7 +117,23 @@ export default function SuperAdminDashboard() {
       try {
         const response = await api.get("/admin/settings/gamification");
         if (response.data.settings) {
-          setSettings(response.data.settings);
+          const s = response.data.settings;
+          setSettings({
+            attendancePoints: s.attendancePoints ?? 5,
+            excusedAbsencePoints: s.excusedAbsencePoints ?? 0,
+            unexcusedAbsencePoints: s.unexcusedAbsencePoints ?? 0,
+            score_1: s.score_1 ?? 1,
+            score_2: s.score_2 ?? 2,
+            score_3: s.score_3 ?? 3,
+            score_4: s.score_4 ?? 4,
+            score_5: s.score_5 ?? 5,
+            score_6: s.score_6 ?? 6,
+            score_7: s.score_7 ?? 7,
+            score_8: s.score_8 ?? 8,
+            score_9: s.score_9 ?? 9,
+            score_10: s.score_10 ?? 10,
+            errorPenaltyMultiplier: s.errorPenaltyMultiplier ?? 1,
+          });
         }
       } catch (error) {
         console.error("Failed to load gamification settings:", error);
@@ -1596,67 +1618,27 @@ export default function SuperAdminDashboard() {
                   <h3 className="text-lg font-semibold text-slate-800 mb-3">
                     نقاط التقييمات
                   </h3>
-                  <div className="grid gap-4 md:grid-cols-4">
-                    <label className="space-y-2 text-sm text-slate-700">
-                      ممتاز
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.gradeExcellentPoints}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "gradeExcellentPoints",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-slate-700">
-                      جيد جداً
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.gradeVeryGoodPoints}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "gradeVeryGoodPoints",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-slate-700">
-                      جيد
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.gradeGoodPoints}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "gradeGoodPoints",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-slate-700">
-                      مقبول
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.gradeAcceptablePoints}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "gradeAcceptablePoints",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const scoreKey = `score_${index + 1}`;
+                      return (
+                        <label
+                          key={scoreKey}
+                          className="space-y-2 text-sm text-slate-700"
+                        >
+                          درجة {index + 1} من 10
+                          <input
+                            type="number"
+                            min="0"
+                            value={settings[scoreKey] ?? 0}
+                            onChange={(e) =>
+                              handleSettingsChange(scoreKey, e.target.value)
+                            }
+                            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          />
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
