@@ -7,61 +7,47 @@ import Navbar from "../components/Navbar";
 import AnnouncementsBanner from "../components/AnnouncementsBanner";
 import PointsSystemGuide from "../components/PointsSystemGuide";
 
-const avatarOptions = [
-  {
-    id: "lion",
-    name: "أسد",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Lion",
-    threshold: 0,
-  },
-  {
-    id: "falcon",
-    name: "صقر",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Falcon",
-    threshold: 0,
-  },
-  {
-    id: "star",
-    name: "نجمة",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Star",
-    threshold: 0,
-  },
-  {
-    id: "crown",
-    name: "تاج",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Crown",
-    threshold: 500,
-  },
-  {
-    id: "unicorn",
-    name: "يونيكورن",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Unicorn",
-    threshold: 0,
-  },
-  {
-    id: "panda",
-    name: "باندا",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Panda",
-    threshold: 0,
-  },
-  {
-    id: "tiger",
-    name: "نمر",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Tiger",
-    threshold: 0,
-  },
-  {
-    id: "dragon",
-    name: "تنين",
-    url: "https://api.dicebear.com/6.x/pixel-art/svg?seed=Dragon",
-    threshold: 500,
-  },
-];
-
 const rankConfig = [
-  { name: "شبل", icon: "🐾", min: 0, max: 200, nextLabel: "بطل" },
-  { name: "بطل", icon: "🛡️", min: 201, max: 500, nextLabel: "قائد" },
-  { name: "قائد", icon: "🏆", min: 501, max: null, nextLabel: null },
+  {
+    name: "قارئ صاعد 🌱",
+    icon: "🌱",
+    min: 0,
+    max: 249,
+    milestoneCap: 250,
+    nextLabel: "مُرَتِّل مُواظِب ✨",
+  },
+  {
+    name: "مُرَتِّل مُواظِب ✨",
+    icon: "✨",
+    min: 250,
+    max: 549,
+    milestoneCap: 550,
+    nextLabel: "حافظ مجتهد 🛡️",
+  },
+  {
+    name: "حافظ مجتهد 🛡️",
+    icon: "🛡️",
+    min: 550,
+    max: 849,
+    milestoneCap: 850,
+    nextLabel: "متميز الهمة 💎",
+  },
+  {
+    name: "متميز الهمة 💎",
+    icon: "💎",
+    min: 850,
+    max: 1149,
+    milestoneCap: 1150,
+    nextLabel: "سفير القرآن 👑",
+  },
+  {
+    name: "سفير القرآن 👑",
+    icon: "👑",
+    min: 1150,
+    max: null,
+    milestoneCap: 1250,
+    nextLabel: null,
+  },
 ];
 
 const getRankInfo = (points) => {
@@ -142,8 +128,6 @@ export default function StudentDashboard() {
   const [totalPoints, setTotalPoints] = useState(null);
   const [reservedPoints, setReservedPoints] = useState(0);
   const [challenges, setChallenges] = useState([]);
-  const [selectedAvatar, setSelectedAvatar] = useState(null);
-  const [avatarMessage, setAvatarMessage] = useState("");
   const [celebrationMessage, setCelebrationMessage] = useState("");
   const [leaderCelebration, setLeaderCelebration] = useState(false);
   const [complaintsModalOpen, setComplaintsModalOpen] = useState(false);
@@ -164,28 +148,22 @@ export default function StudentDashboard() {
       : (dashboard?.points?.totalPoints ?? dashboard?.student?.points ?? 0);
 
   const currentRank = getRankInfo(pointsBalance);
-  const progressPercent = currentRank.max
-    ? Math.min(
-        100,
-        Math.max(
-          0,
-          Math.round(
-            ((pointsBalance - currentRank.min) /
-              (currentRank.max - currentRank.min)) *
-              100,
-          ),
-        ),
-      )
-    : 100;
+  const rankRange = currentRank.milestoneCap - currentRank.min;
+  const progressPercent = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(((pointsBalance - currentRank.min) / rankRange) * 100),
+    ),
+  );
 
-  const progressLabel = currentRank.max
-    ? `أنت ${currentRank.name} — ${pointsBalance - currentRank.min} من ${
-        currentRank.max - currentRank.min
-      } نقطة للوصول إلى ${currentRank.nextLabel}`
+  const remainingPoints = Math.max(0, currentRank.milestoneCap - pointsBalance);
+
+  const progressLabel = currentRank.nextLabel
+    ? `أنت ${currentRank.name} — ${pointsBalance - currentRank.min} من ${rankRange} نقطة نحو ${currentRank.nextLabel}`
     : `أنت ${currentRank.name}! استمر في التألق!`;
 
   const currentRankName = currentRank.name;
-  const defaultAvatarUrl = avatarOptions[0].url;
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -193,12 +171,6 @@ export default function StudentDashboard() {
       setUser(JSON.parse(userData));
     }
   }, []);
-
-  useEffect(() => {
-    if (dashboard?.student?.avatar) {
-      setSelectedAvatar(dashboard.student.avatar);
-    }
-  }, [dashboard]);
 
   useEffect(() => {
     const currentRankName = currentRank.name;
@@ -241,35 +213,6 @@ export default function StudentDashboard() {
       setTimeout(() => setLeaderCelebration(false), 5200);
     }
     setTimeout(() => setCelebrationMessage(""), 4600);
-  };
-
-  const handleAvatarSelect = async (avatar) => {
-    if (pointsBalance < avatar.threshold) {
-      setAvatarMessage(
-        `هذا الآفاتار الخاص يُفتح عندما تصل إلى ${avatar.threshold} نقطة.`,
-      );
-      return;
-    }
-
-    try {
-      await api.patch("/student/avatar", { avatar: avatar.url });
-      setSelectedAvatar(avatar.url);
-      setAvatarMessage(`تهانينا! تم اختيار ${avatar.name} كصورتك الرمزية.`);
-      setDashboard((prev) =>
-        prev
-          ? {
-              ...prev,
-              student: {
-                ...prev.student,
-                avatar: avatar.url,
-              },
-            }
-          : prev,
-      );
-    } catch (error) {
-      console.error("فشل تحديث الصورة الرمزية:", error);
-      setAvatarMessage("حدث خطأ أثناء تحديث الآفاتار. حاول مجددًا.");
-    }
   };
 
   useEffect(() => {
@@ -495,9 +438,9 @@ export default function StudentDashboard() {
                     </div>
                   </div>
                   <p className="mt-4 max-w-xl text-sm text-white/90">
-                    {currentRank.max
-                      ? `${pointsBalance} نقطة من ${currentRank.max} نحو ${currentRank.nextLabel}`
-                      : `${pointsBalance} نقطة - أنت قائد الآن!`}
+                    {currentRank.nextLabel
+                      ? `متبقي ${remainingPoints} نقطة للوصول إلى اللقب التالي`
+                      : "لقد وصلت إلى القمة الفخرية للألقاب! 🎉"}
                   </p>
                 </div>
                 <div className="flex h-28 w-28 items-center justify-center rounded-full bg-white/15 text-6xl shadow-xl ring-1 ring-white/30">
@@ -534,79 +477,7 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">آفاتارك</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">
-                    اختر صورة رمزية ممتعة
-                  </h3>
-                  <p className="mt-2 text-sm text-slate-600">
-                    بعض الصور الرمزية الخاصة تُفتح عند 500 نقطة. استمر
-                    بالمغامرة!
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <img
-                    src={
-                      selectedAvatar ||
-                      dashboard.student.avatar ||
-                      defaultAvatarUrl
-                    }
-                    alt="Avatar"
-                    className="h-20 w-20 rounded-3xl border border-slate-200 bg-slate-50 object-cover"
-                  />
-                  <div>
-                    <p className="text-sm text-slate-500">الصورة الحالية</p>
-                    <p className="text-lg font-semibold text-slate-900">
-                      {dashboard.student.firstName}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-3">
-                {avatarOptions.map((avatar) => {
-                  const locked = pointsBalance < avatar.threshold;
-                  const selected = selectedAvatar === avatar.url;
-                  return (
-                    <button
-                      type="button"
-                      key={avatar.id}
-                      disabled={locked}
-                      onClick={() => handleAvatarSelect(avatar)}
-                      className={`relative overflow-hidden rounded-3xl border p-3 text-center transition ${
-                        selected
-                          ? "border-orange-500 bg-orange-50"
-                          : "border-slate-200 bg-slate-50 hover:border-orange-300 hover:bg-white"
-                      } ${locked ? "cursor-not-allowed opacity-70" : "hover:-translate-y-0.5"}`}
-                    >
-                      <img
-                        src={avatar.url}
-                        alt={avatar.name}
-                        className="mx-auto h-20 w-20"
-                      />
-                      <p className="mt-3 text-sm font-semibold text-slate-700">
-                        {avatar.name}
-                      </p>
-                      {locked ? (
-                        <span className="mt-2 block text-xs text-rose-600">
-                          يُفتح عند {avatar.threshold}
-                        </span>
-                      ) : selected ? (
-                        <span className="absolute right-3 top-3 rounded-full bg-orange-500 px-2 py-1 text-[11px] text-white">
-                          محدد
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-              {avatarMessage ? (
-                <p className="mt-4 text-sm text-slate-600">{avatarMessage}</p>
-              ) : null}
-            </div>
-
-            <div className="mt-6 rounded-3xl bg-white p-4 md:p-6 shadow-sm border border-slate-200 mb-8 w-full">
+            <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm border border-slate-200 mb-8 w-full">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-sm text-slate-500">جدار الأوسمة</p>
