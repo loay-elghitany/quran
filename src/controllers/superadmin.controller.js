@@ -112,9 +112,7 @@ const exportStudentCredentials = async (req, res, next) => {
       User.find({ role: "Student" })
         .populate("teacherId", "firstName lastName")
         .lean(),
-      User.find({ role: "Parent" })
-        .select("email childrenIds")
-        .lean(),
+      User.find({ role: "Parent" }).select("email childrenIds").lean(),
     ]);
 
     const parentMap = {};
