@@ -3,6 +3,8 @@ const Joi = require("joi");
 const rewardCreateSchema = Joi.object({
   name: Joi.string().trim().min(3).max(100).required(),
   pointsRequired: Joi.number().integer().min(1).required(),
+  quantity: Joi.number().integer().min(0).optional(),
+  image: Joi.string().uri().optional().allow(""),
   imageUrl: Joi.string().uri().optional().allow(""),
   icon: Joi.string().trim().max(20).optional().allow(""),
   description: Joi.string().trim().max(500).optional().allow(""),
@@ -11,6 +13,8 @@ const rewardCreateSchema = Joi.object({
 const rewardUpdateSchema = Joi.object({
   name: Joi.string().trim().min(3).max(100).optional(),
   pointsRequired: Joi.number().integer().min(1).optional(),
+  quantity: Joi.number().integer().min(0).optional(),
+  image: Joi.string().uri().optional().allow(""),
   imageUrl: Joi.string().uri().optional().allow(""),
   icon: Joi.string().trim().max(20).optional().allow(""),
   description: Joi.string().trim().max(500).optional().allow(""),

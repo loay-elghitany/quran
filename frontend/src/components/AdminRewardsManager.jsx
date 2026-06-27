@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import api from "../api/axios";
 import { getApiErrorMessage } from "../utils/apiError";
+
+const CLOUDINARY_CLOUD_NAME =
+  import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "YOUR_CLOUD_NAME";
+const CLOUDINARY_UPLOAD_PRESET =
+  import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "YOUR_UPLOAD_PRESET";
+const CLOUDINARY_URL = CLOUDINARY_CLOUD_NAME
+  ? `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
+  : "";
 
 const redemptionStatusMap = {
   pending: "قيد الانتظار",
@@ -18,8 +27,17 @@ const initialRewardForm = {
   _id: "",
   name: "",
   pointsRequired: "",
+  quantity: 1,
+  image: "",
+  imageUrl: "",
   icon: "",
   description: "",
+};
+
+const getAuthHeaders = () => {
+  const token =
+    localStorage.getItem("token") || localStorage.getItem("jwtToken");
+  return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 };
 
 export default function AdminRewardsManager() {
@@ -29,6 +47,8 @@ export default function AdminRewardsManager() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -37,9 +57,10 @@ export default function AdminRewardsManager() {
   const loadData = async () => {
     try {
       setLoading(true);
+      const requestConfig = getAuthHeaders();
       const [rewardsRes, redemptionsRes] = await Promise.all([
-        api.get("/admin/rewards"),
-        api.get("/admin/redemptions"),
+        api.get("/admin/rewards", requestConfig),
+        api.get("/admin/redemptions", requestConfig),
       ]);
       setRewards(rewardsRes.data.rewards || []);
       setRedemptions(redemptionsRes.data.redemptions || []);
@@ -52,22 +73,70 @@ export default function AdminRewardsManager() {
   };
 
   const handleChange = (field, value) => {
-    setRewardForm((prev) => ({ ...prev, [field]: value }));
+    setRewardForm((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === "imageUrl" ? { image: value } : {}),
+    }));
+    if (field === "imageUrl") {
+      setImagePreview(value);
+    }
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      setMessage("");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      const response = await axios.post(CLOUDINARY_URL, formData);
+      const secureUrl = response.data.secure_url;
+      setRewardForm((prev) => ({
+        ...prev,
+        image: secureUrl,
+        imageUrl: secureUrl,
+      }));
+      setImagePreview(secureUrl);
+      setMessage("تم تحميل الصورة بنجاح.");
+    } catch (error) {
+      console.error(
+        "Cloudinary strict error message:",
+        error.response?.data?.error?.message || error.message,
+      );
+      setMessage(
+        getApiErrorMessage(
+          error,
+          "فشل رفع الصورة. تحقق من إعدادات Cloudinary.",
+        ),
+      );
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleEdit = (reward) => {
+    const imageLink = reward.image || reward.imageUrl || "";
     setRewardForm({
       _id: reward._id,
       name: reward.name || "",
       pointsRequired: reward.pointsRequired?.toString() || "",
+      quantity: reward.quantity?.toString() ?? "1",
+      image: imageLink,
+      imageUrl: imageLink,
       icon: reward.icon || "",
       description: reward.description || "",
     });
+    setImagePreview(imageLink);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleReset = () => {
     setRewardForm(initialRewardForm);
+    setImagePreview("");
     setMessage("");
   };
 
@@ -83,15 +152,22 @@ export default function AdminRewardsManager() {
       const payload = {
         name: rewardForm.name,
         pointsRequired: Number(rewardForm.pointsRequired),
+        quantity: Number(rewardForm.quantity ?? 1),
+        image: rewardForm.image || rewardForm.imageUrl || "",
         icon: rewardForm.icon,
         description: rewardForm.description,
       };
 
+      const requestConfig = getAuthHeaders();
       if (rewardForm._id) {
-        await api.put(`/admin/rewards/${rewardForm._id}`, payload);
+        await api.put(
+          `/admin/rewards/${rewardForm._id}`,
+          payload,
+          requestConfig,
+        );
         setMessage("تم تحديث المكافأة بنجاح.");
       } else {
-        await api.post("/admin/rewards", payload);
+        await api.post("/admin/rewards", payload, requestConfig);
         setMessage("تم إضافة المكافأة بنجاح.");
       }
 
@@ -111,7 +187,8 @@ export default function AdminRewardsManager() {
     }
 
     try {
-      await api.delete(`/admin/rewards/${rewardId}`);
+      const requestConfig = getAuthHeaders();
+      await api.delete(`/admin/rewards/${rewardId}`, requestConfig);
       setMessage("تم حذف المكافأة بنجاح.");
       await loadData();
     } catch (error) {
@@ -122,7 +199,12 @@ export default function AdminRewardsManager() {
 
   const handleRedemptionStatus = async (redemptionId, status) => {
     try {
-      await api.put(`/admin/redemptions/${redemptionId}`, { status });
+      const requestConfig = getAuthHeaders();
+      await api.put(
+        `/admin/redemptions/${redemptionId}`,
+        { status },
+        requestConfig,
+      );
       setMessage("تم تحديث حالة الطلب.");
       await loadData();
     } catch (error) {
@@ -177,6 +259,60 @@ export default function AdminRewardsManager() {
                 />
               </label>
             </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="space-y-2 text-sm text-slate-700">
+                الكمية المتاحة
+                <input
+                  type="number"
+                  min={0}
+                  value={rewardForm.quantity}
+                  onChange={(e) => handleChange("quantity", e.target.value)}
+                  className="w-full rounded-3xl border border-slate-300 px-4 py-3"
+                  placeholder="مثال: 10"
+                />
+              </label>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:border-quran-500 transition cursor-pointer bg-slate-50 flex flex-col items-center justify-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <span className="text-2xl">📤</span>
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    اسحب وأفلت هنا أو انقر لتحميل
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    تنسيق JPEG أو PNG، يُرفع إلى Cloudinary تلقائيًا
+                  </p>
+                </div>
+              </label>
+              <label className="space-y-2 text-sm text-slate-700">
+                أو رابط الصورة
+                <input
+                  type="url"
+                  value={rewardForm.imageUrl}
+                  onChange={(e) => handleChange("imageUrl", e.target.value)}
+                  className="w-full rounded-3xl border border-slate-300 px-4 py-3"
+                  placeholder="https://res.cloudinary.com/..."
+                />
+              </label>
+            </div>
+            {imagePreview ? (
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm text-slate-500 mb-4">معاينة الصورة:</p>
+                <div className="w-32 h-32 mx-auto overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                  <img
+                    src={imagePreview}
+                    alt="معاينة المكافأة"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            ) : null}
             <div className="grid gap-4 lg:grid-cols-2">
               <label className="space-y-2 text-sm text-slate-700">
                 أيقونة / رمز تعريفي
@@ -250,6 +386,9 @@ export default function AdminRewardsManager() {
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="rounded-full bg-quran-100 px-3 py-2 text-sm font-semibold text-quran-800">
                           {reward.pointsRequired} نقطة
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+                          الكمية: {reward.quantity ?? 0}
                         </span>
                         <button
                           type="button"

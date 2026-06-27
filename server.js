@@ -65,7 +65,7 @@ const connectDatabase = async () => {
       maxPoolSize: NODE_ENV === "production" ? 50 : 10,
       minPoolSize: NODE_ENV === "production" ? 10 : 5,
       socketTimeoutMS: 45000,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       retryWrites: true,
       w: "majority",
     });

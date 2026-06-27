@@ -108,9 +108,32 @@ const getGroups = async (req, res) => {
 
 const exportStudentCredentials = async (req, res, next) => {
   try {
-    const students = await User.find({ role: "Student" })
-      .populate("teacherId", "firstName lastName")
-      .lean();
+    const [students, parents] = await Promise.all([
+      User.find({ role: "Student" })
+        .populate("teacherId", "firstName lastName")
+        .lean(),
+      User.find({ role: "Parent" })
+        .select("email childrenIds")
+        .lean(),
+    ]);
+
+    const parentMap = {};
+
+    parents.forEach((parent) => {
+      const childIds = Array.isArray(parent.childrenIds)
+        ? parent.childrenIds
+        : [];
+
+      childIds.forEach((childId) => {
+        const childKey = String(childId?._id || childId);
+        if (!parentMap[childKey]) {
+          parentMap[childKey] = [];
+        }
+        if (parent.email) {
+          parentMap[childKey].push(parent.email);
+        }
+      });
+    });
 
     const escapeCsv = (value) => {
       const safeValue = value == null ? "" : String(value);
@@ -124,28 +147,18 @@ const exportStudentCredentials = async (req, res, next) => {
     ];
 
     for (const student of students) {
-      // 🕵️‍♂️ التعديل هنا: استخدمنا find بدل findOne عشان نجيب كل أولياء الأمور
-      const parents = await User.find({
-        role: "Parent",
-        childrenIds: student._id,
-      })
-        .select("email")
-        .lean();
-
       const teacherName = student.teacherId
         ? `${student.teacherId.firstName || ""} ${student.teacherId.lastName || ""}`.trim()
         : "";
 
-      // 🕵️‍♂️ التعديل هنا: دمجنا الإيميلات لو فيه أكتر من حساب
-      const parentEmails =
-        parents.length > 0 ? parents.map((p) => p.email).join(" | ") : "";
+      const parentEmails = (parentMap[String(student._id)] || []).join(" | ");
 
       rows.push(
         [
           `${student.firstName || ""} ${student.lastName || ""}`.trim(),
           student.email || "",
           teacherName,
-          parentEmails, // 👈 هنا هينزل الإيميل المدمج
+          parentEmails,
         ]
           .map(escapeCsv)
           .join(","),

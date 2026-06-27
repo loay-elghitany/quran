@@ -3,9 +3,25 @@ const Redemption = require("../models/redemption.model");
 const Evaluation = require("../models/evaluation.model");
 const User = require("../models/user.model");
 
+const ensureRewardQuantityDefaults = async () => {
+  await Reward.updateMany(
+    { $or: [{ quantity: { $exists: false } }, { quantity: null }] },
+    { $set: { quantity: 1 } },
+  );
+};
+
 const createReward = async (req, res) => {
   try {
-    const { name, pointsRequired, imageUrl, icon, description } = req.body;
+    const {
+      name,
+      pointsRequired,
+      quantity,
+      image,
+      imageUrl,
+      icon,
+      description,
+    } = req.body;
+    const imageValue = image || imageUrl || "";
 
     if (!name || pointsRequired == null) {
       return res
@@ -16,7 +32,9 @@ const createReward = async (req, res) => {
     const reward = new Reward({
       name,
       pointsRequired,
-      imageUrl,
+      quantity,
+      image: imageValue,
+      imageUrl: imageValue,
       icon,
       description,
     });
@@ -27,40 +45,56 @@ const createReward = async (req, res) => {
       .json({ message: "تم إنشاء المكافأة بنجاح.", reward: savedReward });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
 const getRewards = async (req, res) => {
   try {
-    const rewards = await Reward.find();
+    await ensureRewardQuantityDefaults();
+    const rewards = await Reward.find().sort({ pointsRequired: -1 });
     res.json({ rewards });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
 const updateReward = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, pointsRequired, imageUrl, icon, description } = req.body;
+    const {
+      name,
+      pointsRequired,
+      quantity,
+      image,
+      imageUrl,
+      icon,
+      description,
+    } = req.body;
+    const imageValue = image || imageUrl;
 
-    const reward = await Reward.findByIdAndUpdate(
-      id,
-      { name, pointsRequired, imageUrl, icon, description },
-      { new: true },
-    );
+    const updatePayload = {};
+    if (name !== undefined) updatePayload.name = name;
+    if (pointsRequired !== undefined)
+      updatePayload.pointsRequired = pointsRequired;
+    if (quantity !== undefined) updatePayload.quantity = quantity;
+    if (icon !== undefined) updatePayload.icon = icon;
+    if (description !== undefined) updatePayload.description = description;
+    if (imageValue !== undefined) {
+      updatePayload.image = imageValue;
+      updatePayload.imageUrl = imageValue;
+    }
+
+    const reward = await Reward.findByIdAndUpdate(id, updatePayload, {
+      new: true,
+    });
 
     if (!reward) {
       return res
@@ -71,12 +105,10 @@ const updateReward = async (req, res) => {
     res.json({ message: "تم تحديث المكافأة بنجاح.", reward });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -92,12 +124,10 @@ const deleteReward = async (req, res) => {
     res.json({ message: "تم حذف المكافأة بنجاح." });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -110,12 +140,10 @@ const getRedemptions = async (req, res) => {
     res.json({ redemptions });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -147,12 +175,10 @@ const updateRedemptionStatus = async (req, res) => {
     res.json({ message: "تم تحديث حالة الطلب بنجاح.", redemption });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -192,7 +218,8 @@ const getStudentRewards = async (req, res) => {
     const reservedPoints = reservedAggregation[0]?.reservedPoints || 0;
     const availablePoints = totalPoints - reservedPoints;
 
-    const rewards = await Reward.find();
+    await ensureRewardQuantityDefaults();
+    const rewards = await Reward.find().sort({ pointsRequired: -1 });
     const redemptions = await Redemption.find({ studentId })
       .sort({ date: -1 })
       .populate("rewardId", "name pointsRequired");
@@ -207,12 +234,10 @@ const getStudentRewards = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -266,6 +291,13 @@ const redeemReward = async (req, res) => {
     const reservedPoints = reservedAggregation[0]?.reservedPoints || 0;
     const availablePoints = totalPoints - reservedPoints;
 
+    if ((reward.quantity ?? 1) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "عذراً، لقد نفدت الكمية المتاحة من هذه المكافأة.",
+      });
+    }
+
     if (availablePoints < reward.pointsRequired) {
       return res.status(400).json({
         success: false,
@@ -282,6 +314,20 @@ const redeemReward = async (req, res) => {
     });
 
     const savedRedemption = await redemption.save();
+    const updatedReward = await Reward.findOneAndUpdate(
+      { _id: rewardId, quantity: { $gt: 0 } },
+      { $inc: { quantity: -1 } },
+      { new: true },
+    );
+
+    if (!updatedReward) {
+      await Redemption.findByIdAndDelete(savedRedemption._id);
+      return res.status(400).json({
+        success: false,
+        message: "عذراً، لقد نفدت الكمية المتاحة من هذه المكافأة.",
+      });
+    }
+
     res.status(201).json({
       message: "تم إنشاء طلب الاستبدال بنجاح.",
       redemption: savedRedemption,
@@ -289,12 +335,10 @@ const redeemReward = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 

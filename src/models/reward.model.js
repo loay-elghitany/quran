@@ -13,6 +13,15 @@ const RewardSchema = new Schema({
     required: [true, "Points required is required"],
     min: 0,
   },
+  quantity: {
+    type: Number,
+    default: 1,
+    min: 0,
+  },
+  image: {
+    type: String,
+    trim: true,
+  },
   imageUrl: {
     type: String,
     trim: true,

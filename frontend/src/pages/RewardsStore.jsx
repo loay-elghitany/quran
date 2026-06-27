@@ -16,40 +16,75 @@ const redemptionStatusClass = {
   rejected: "text-rose-600",
 };
 
-function RewardCard({ reward, onRedeem, disabled }) {
+function RewardCard({ reward, onRedeem, disabled, availablePoints }) {
+  const imageUrl = reward.image || reward.imageUrl || "";
+  const isOutOfStock =
+    reward.quantity === undefined || Number(reward.quantity) <= 0;
+  const hasEnoughPoints = availablePoints >= reward.pointsRequired;
+  const isDisabled = Boolean(disabled) || isOutOfStock || !hasEnoughPoints;
+
+  let buttonText = "اطلبها";
+  let buttonClassName = "bg-emerald-600 text-white hover:bg-emerald-700";
+
+  if (isOutOfStock) {
+    buttonText = "نفدت الكمية";
+    buttonClassName = "cursor-not-allowed bg-slate-200 text-slate-500";
+  } else if (!hasEnoughPoints) {
+    buttonText = "النقاط غير كافية";
+    buttonClassName =
+      "cursor-not-allowed border border-amber-300 bg-amber-50 text-amber-700";
+  }
+
   return (
-    <div className="rounded-3xl border border-quran-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-quran-50 text-3xl">
-          {reward.icon || "🏅"}
-        </div>
+    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div className="w-full h-48 bg-slate-100 rounded-t-3xl overflow-hidden relative">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={reward.name}
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 text-4xl text-slate-500">
+            {reward.icon || "🏆"}
+          </div>
+        )}
+      </div>
+      <div className="space-y-4 p-5">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">
             {reward.name}
           </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            {reward.description || "وصف المكافأة"}
+          <p className="mt-3 text-sm leading-6 text-slate-600 line-clamp-2">
+            {reward.description || "مكافأة جميلة تستحق التجربة."}
           </p>
         </div>
-      </div>
-      <div className="mt-5 flex items-center justify-between gap-4">
-        <span className="rounded-full bg-quran-100 px-3 py-2 text-sm font-semibold text-quran-800">
-          {reward.pointsRequired} نقطة
-        </span>
-        {onRedeem ? (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => onRedeem(reward._id)}
-            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-              disabled
-                ? "cursor-not-allowed bg-slate-200 text-slate-500"
-                : "bg-quran-700 text-white hover:bg-quran-800"
-            }`}
-          >
-            اطلبها
-          </button>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+              {reward.pointsRequired} نقطة
+            </span>
+            <span
+              className={`rounded-full px-3 py-2 text-sm font-semibold ${
+                isOutOfStock
+                  ? "bg-slate-200 text-slate-500"
+                  : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {isOutOfStock ? "نفدت الكمية" : `المتبقي: ${reward.quantity} قطع`}
+            </span>
+          </div>
+          {onRedeem ? (
+            <button
+              type="button"
+              disabled={isDisabled}
+              onClick={() => onRedeem(reward._id)}
+              className={`inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold transition ${buttonClassName}`}
+            >
+              {buttonText}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -66,8 +101,11 @@ export default function RewardsStore() {
   const [newReward, setNewReward] = useState({
     name: "",
     pointsRequired: "",
+    quantity: 1,
     description: "",
     icon: "",
+    image: "",
+    imageUrl: "",
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -147,11 +185,21 @@ export default function RewardsStore() {
       await api.post("/admin/rewards", {
         name: newReward.name,
         pointsRequired: Number(newReward.pointsRequired),
+        quantity: Number(newReward.quantity ?? 1),
+        image: newReward.image || newReward.imageUrl || "",
         description: newReward.description,
         icon: newReward.icon,
       });
       setMessage("تم إضافة المكافأة بنجاح.");
-      setNewReward({ name: "", pointsRequired: "", description: "", icon: "" });
+      setNewReward({
+        name: "",
+        pointsRequired: "",
+        quantity: 1,
+        description: "",
+        icon: "",
+        image: "",
+        imageUrl: "",
+      });
       const response = await api.get("/admin/rewards");
       setRewards(response.data.rewards || []);
     } catch (error) {
@@ -223,7 +271,7 @@ export default function RewardsStore() {
             <h2 className="text-xl font-semibold text-slate-900">
               المكافآت المتاحة
             </h2>
-            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {rewards.length === 0 ? (
                 <p className="text-slate-600">لا توجد مكافآت متاحة.</p>
               ) : (
@@ -232,10 +280,8 @@ export default function RewardsStore() {
                     key={reward._id}
                     reward={reward}
                     onRedeem={userRole === "Student" ? handleRedeem : null}
-                    disabled={
-                      userRole === "Student" &&
-                      availablePoints < reward.pointsRequired
-                    }
+                    disabled={false}
+                    availablePoints={availablePoints}
                   />
                 ))
               )}
@@ -350,23 +396,56 @@ export default function RewardsStore() {
               placeholder="اسم المكافأة"
               className="rounded-3xl border border-slate-200 p-4 text-slate-900"
             />
-            <input
-              type="number"
-              value={newReward.pointsRequired}
-              onChange={(e) =>
-                setNewReward({ ...newReward, pointsRequired: e.target.value })
-              }
-              placeholder="النقاط المطلوبة"
-              className="rounded-3xl border border-slate-200 p-4 text-slate-900"
-            />
-            <input
-              value={newReward.icon}
-              onChange={(e) =>
-                setNewReward({ ...newReward, icon: e.target.value })
-              }
-              placeholder="أيقونة (اختياري)"
-              className="rounded-3xl border border-slate-200 p-4 text-slate-900"
-            />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <input
+                type="number"
+                value={newReward.pointsRequired}
+                onChange={(e) =>
+                  setNewReward({ ...newReward, pointsRequired: e.target.value })
+                }
+                placeholder="النقاط المطلوبة"
+                className="rounded-3xl border border-slate-200 p-4 text-slate-900"
+              />
+              <input
+                type="number"
+                min={0}
+                value={newReward.quantity}
+                onChange={(e) =>
+                  setNewReward({ ...newReward, quantity: e.target.value })
+                }
+                placeholder="الكمية المتاحة"
+                className="rounded-3xl border border-slate-200 p-4 text-slate-900"
+              />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="space-y-2 text-sm text-slate-700">
+                رابط الصورة
+                <input
+                  type="url"
+                  value={newReward.imageUrl}
+                  onChange={(e) =>
+                    setNewReward({
+                      ...newReward,
+                      imageUrl: e.target.value,
+                      image: e.target.value,
+                    })
+                  }
+                  placeholder="https://res.cloudinary.com/..."
+                  className="w-full rounded-3xl border border-slate-200 p-4 text-slate-900"
+                />
+              </label>
+              <label className="space-y-2 text-sm text-slate-700">
+                أيقونة (اختياري)
+                <input
+                  value={newReward.icon}
+                  onChange={(e) =>
+                    setNewReward({ ...newReward, icon: e.target.value })
+                  }
+                  placeholder="🏅"
+                  className="w-full rounded-3xl border border-slate-200 p-4 text-slate-900"
+                />
+              </label>
+            </div>
             <textarea
               value={newReward.description}
               onChange={(e) =>

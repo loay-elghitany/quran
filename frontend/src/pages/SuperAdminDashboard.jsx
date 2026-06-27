@@ -31,6 +31,7 @@ export default function SuperAdminDashboard() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [studentUpdateStatus, setStudentUpdateStatus] = useState("");
   const [userStatus, setUserStatus] = useState("");
+  const [isExportingCredentials, setIsExportingCredentials] = useState(false);
 
   const [groupName, setGroupName] = useState("");
   const [groupStatus, setGroupStatus] = useState("");
@@ -291,24 +292,362 @@ export default function SuperAdminDashboard() {
     setEditingStudent((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  const parseCsvLine = (line) => {
+    const values = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+      const char = line[index];
+
+      if (char === '"') {
+        if (inQuotes && line[index + 1] === '"') {
+          current += '"';
+          index += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === "," && !inQuotes) {
+        values.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current);
+    return values.map((value) => value.trim());
+  };
+
+  const parseParentEmails = (rawValue) => {
+    if (!rawValue) {
+      return { fatherEmail: "", motherEmail: "" };
+    }
+
+    const parts = String(rawValue)
+      .split("|")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    return {
+      fatherEmail: parts[0] || "",
+      motherEmail: parts[1] || "",
+    };
+  };
+
+  const normalizeStudentCredentials = (payload) => {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (payload && typeof payload === "object") {
+      const list =
+        payload.students || payload.credentials || payload.data || [];
+      if (Array.isArray(list)) {
+        return list;
+      }
+    }
+
+    if (typeof payload === "string") {
+      const text = payload.replace(/^\uFEFF/, "").trim();
+      if (!text) {
+        return [];
+      }
+
+      if (text.startsWith("{") || text.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(text);
+          return normalizeStudentCredentials(parsed);
+        } catch (error) {
+          console.warn(
+            "Failed to parse JSON credential export payload.",
+            error,
+          );
+        }
+      }
+
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length <= 1) {
+        return [];
+      }
+
+      return lines.slice(1).map((line) => {
+        const [
+          studentName = "",
+          studentEmail = "",
+          teacherName = "",
+          parentEmails = "",
+        ] = parseCsvLine(line);
+        const { fatherEmail, motherEmail } = parseParentEmails(parentEmails);
+
+        return {
+          studentName,
+          studentEmail,
+          defaultPassword: "12121212",
+          teacherName,
+          fatherEmail,
+          motherEmail,
+        };
+      });
+    }
+
+    return [];
+  };
+
+  const buildCredentialCardsHtml = (credentials) => {
+    const cardsHtml = credentials
+      .map((credential, index) => {
+        const studentName = credential.studentName || "—";
+        const studentEmail = credential.studentEmail || "—";
+        const fatherEmail = String(credential.fatherEmail || "").trim();
+        const motherEmail = String(credential.motherEmail || "").trim();
+        const shouldShowFather = fatherEmail && fatherEmail !== "—";
+        const shouldShowMother = motherEmail && motherEmail !== "—";
+        const cardNumber = index + 1;
+
+        return `
+          <article class="credential-card">
+            <div class="card-top">
+              <div class="card-icon">✦</div>
+              <div>
+                <div class="academy-name">مدرسة القرآن الكريم</div>
+                <div class="academy-subtitle">بطاقة تعريف الطالب</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-field">
+                <span>اسم الطالب</span>
+                <strong>${escapeHtml(studentName)}</strong>
+              </div>
+              <div class="card-field">
+                <span>إيميل الطالب</span>
+                <strong>${escapeHtml(studentEmail)}</strong>
+              </div>
+              <div class="card-field">
+                <span>كلمة المرور</span>
+                <strong>${escapeHtml(credential.defaultPassword || "12121212")}</strong>
+              </div>
+              ${
+                shouldShowFather
+                  ? `
+                <div class="card-field">
+                  <span>إيميل الوالد</span>
+                  <strong>${escapeHtml(fatherEmail)}</strong>
+                </div>
+              `
+                  : ""
+              }
+              ${
+                shouldShowMother
+                  ? `
+                <div class="card-field">
+                  <span>إيميل الوالدة</span>
+                  <strong>${escapeHtml(motherEmail)}</strong>
+                </div>
+              `
+                  : ""
+              }
+            </div>
+            <div class="card-footer">#${cardNumber}</div>
+          </article>
+        `;
+      })
+      .join("");
+
+    return `<!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="utf-8" />
+          <title>بطاقات بيانات الطلاب</title>
+          <style>
+            @page { size: A4; margin: 0; }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+              background: #f5f5f0;
+              color: #0f172a;
+              padding: 10mm;
+            }
+            .page {
+              width: 100%;
+              min-height: 100vh;
+              background: #fffdf7;
+              border: 1px solid #c8a24f;
+              border-radius: 20px;
+              padding: 12mm;
+            }
+            .page-title {
+              font-size: 22px;
+              font-weight: 700;
+              color: #0f766e;
+              margin-bottom: 6mm;
+              text-align: center;
+            }
+            .page-subtitle {
+              font-size: 11px;
+              color: #64748b;
+              text-align: center;
+              margin-bottom: 6mm;
+            }
+            .cards-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 6mm;
+            }
+            .credential-card {
+              border: 2px solid #0f766e;
+              border-radius: 16px;
+              padding: 5mm;
+              background: linear-gradient(135deg, #fefefe 0%, #f7f3e8 100%);
+              box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .card-top {
+              display: flex;
+              align-items: center;
+              gap: 3mm;
+              border-bottom: 1px solid #d8b46b;
+              padding-bottom: 3mm;
+              margin-bottom: 3mm;
+            }
+            .card-icon {
+              width: 34px;
+              height: 34px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #0f766e, #c8a24f);
+              color: white;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              font-size: 18px;
+              font-weight: 700;
+            }
+            .academy-name {
+              font-size: 14px;
+              font-weight: 700;
+              color: #0f766e;
+            }
+            .academy-subtitle {
+              font-size: 10px;
+              color: #7c6a3e;
+            }
+            .card-body {
+              display: grid;
+              gap: 2.3mm;
+            }
+            .card-field {
+              background: rgba(255, 255, 255, 0.8);
+              border: 1px solid #e7dfc7;
+              border-radius: 10px;
+              padding: 2.2mm 3mm;
+            }
+            .card-field span {
+              display: block;
+              font-size: 8px;
+              color: #7c6a3e;
+              margin-bottom: 1mm;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+            }
+            .card-field strong {
+              display: block;
+              font-size: 11px;
+              color: #0f172a;
+              word-break: break-word;
+            }
+            .card-footer {
+              margin-top: 3mm;
+              font-size: 9px;
+              color: #64748b;
+              text-align: left;
+            }
+            @media print {
+              body {
+                background: white;
+                padding: 0;
+              }
+              .page {
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <div class="page-title">بطاقات بيانات الدخول للطلاب</div>
+            <div class="page-subtitle">نسخة طباعة جاهزة - مناسبة للقطع والحفظ كملف PDF</div>
+            <div class="cards-grid">${cardsHtml}</div>
+          </div>
+        </body>
+      </html>`;
+  };
+
   const handleExportCredentials = async () => {
+    if (isExportingCredentials) {
+      return;
+    }
+
+    setIsExportingCredentials(true);
+
     try {
       const response = await api.get("/admin/export/students-credentials", {
-        responseType: "blob",
+        responseType: "text",
       });
-      const blob = new Blob([response.data], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "students_credentials.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+
+      const credentials = normalizeStudentCredentials(response.data);
+
+      if (!credentials.length) {
+        console.warn("No student credential data was returned.");
+        return;
+      }
+
+      const printHtml = buildCredentialCardsHtml(credentials);
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "-9999px";
+      iframe.style.top = "-9999px";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+
+      iframe.srcdoc = printHtml;
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (printError) {
+          console.error("Failed to trigger print dialog:", printError);
+        }
+
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        }, 1000);
+      };
     } catch (error) {
       console.error("Failed to export student credentials:", error);
+    } finally {
+      window.setTimeout(() => {
+        setIsExportingCredentials(false);
+      }, 800);
     }
   };
 
@@ -555,9 +894,12 @@ export default function SuperAdminDashboard() {
                 <button
                   type="button"
                   onClick={handleExportCredentials}
-                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                  disabled={isExportingCredentials}
+                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
                 >
-                  تصدير بيانات الدخول
+                  {isExportingCredentials
+                    ? "جاري تحضير ملف PDF..."
+                    : "تصدير بيانات الدخول"}
                 </button>
               </div>
               <form className="space-y-4" onSubmit={handleCreateUser}>
