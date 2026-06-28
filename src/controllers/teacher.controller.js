@@ -174,10 +174,8 @@ const createEvaluation = async (req, res, next) => {
     const isExcusedAbsence = attendanceStatus === "غائب بعذر";
     const isPresent = attendanceStatus === "حاضر";
 
-    if (isUnexcusedAbsence) {
-      points = settings.unexcusedAbsencePoints || 0;
-    } else if (isExcusedAbsence) {
-      points = settings.excusedAbsencePoints || 0;
+    if (isUnexcusedAbsence || isExcusedAbsence) {
+      points = 0;
     } else if (isPresent) {
       const scoreKey =
         typeof normalizedGrade === "number" &&
@@ -221,7 +219,7 @@ const createEvaluation = async (req, res, next) => {
         to: revisionTo,
       },
       mistakes,
-      grade: normalizedGrade,
+      grade: isPresent ? normalizedGrade : undefined,
       notes,
       audioNote: req.file?.path || undefined,
     });
@@ -230,27 +228,34 @@ const createEvaluation = async (req, res, next) => {
 
     const student = await User.findById(studentId);
     if (student) {
-      const previousStreak = student.evaluationStreak || {
-        currentGrade: "",
-        count: 0,
-        maxStreak: 0,
-      };
-      let currentCount = 0;
-
-      if (grade === "يحتاج مراجعة") {
-        currentCount = 0;
-      } else if (previousStreak.currentGrade === grade) {
-        currentCount = previousStreak.count + 1;
-      } else {
-        currentCount = 1;
+      if (isUnexcusedAbsence) {
+        student.points = (student.points || 0) - 15;
       }
 
-      const nextMax = Math.max(previousStreak.maxStreak || 0, currentCount);
-      student.evaluationStreak = {
-        currentGrade: grade,
-        count: currentCount,
-        maxStreak: nextMax,
-      };
+      if (isPresent) {
+        const previousStreak = student.evaluationStreak || {
+          currentGrade: "",
+          count: 0,
+          maxStreak: 0,
+        };
+        let currentCount = 0;
+
+        if (grade === "يحتاج مراجعة") {
+          currentCount = 0;
+        } else if (previousStreak.currentGrade === grade) {
+          currentCount = previousStreak.count + 1;
+        } else {
+          currentCount = 1;
+        }
+
+        const nextMax = Math.max(previousStreak.maxStreak || 0, currentCount);
+        student.evaluationStreak = {
+          currentGrade: grade,
+          count: currentCount,
+          maxStreak: nextMax,
+        };
+      }
+
       await student.save();
     }
 

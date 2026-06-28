@@ -32,6 +32,15 @@ export default function SuperAdminDashboard() {
   const [studentUpdateStatus, setStudentUpdateStatus] = useState("");
   const [userStatus, setUserStatus] = useState("");
   const [isExportingCredentials, setIsExportingCredentials] = useState(false);
+  const [activeTab, setActiveTab] = useState("teachers");
+
+  const tabs = [
+    { key: "teachers", label: "المعلمين" },
+    { key: "students", label: "الطلاب" },
+    { key: "parents", label: "أولياء الأمور" },
+    { key: "groups", label: "المجموعات" },
+    { key: "settings", label: "إعدادات النقاط" },
+  ];
 
   const [groupName, setGroupName] = useState("");
   const [groupStatus, setGroupStatus] = useState("");
@@ -851,6 +860,10 @@ export default function SuperAdminDashboard() {
     return full.includes(parentEditSearchQuery.trim().toLowerCase());
   });
 
+  const showUserCreationPanel = ["teachers", "students", "parents"].includes(
+    activeTab,
+  );
+
   return (
     <div className="min-h-screen w-full min-w-0 bg-gray-50 text-slate-800">
       <Navbar role={user?.role} />
@@ -881,102 +894,300 @@ export default function SuperAdminDashboard() {
 
           <main className="flex-1 space-y-8">
             <AnnouncementsBanner />
-            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-semibold text-slate-900">
-                    إدارة المستخدمين
-                  </h1>
-                  <p className="text-sm text-slate-500">
-                    أنشئ معلمين، طلاب وأولياء أمور بسرعة.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleExportCredentials}
-                  disabled={isExportingCredentials}
-                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
-                >
-                  {isExportingCredentials
-                    ? "جاري تحضير ملف PDF..."
-                    : "تصدير بيانات الدخول"}
-                </button>
+            <section className="grid gap-5 mb-8 sm:grid-cols-2 xl:grid-cols-4">
+              <article className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-6 shadow-[0_25px_60px_-30px_rgba(14,116,144,0.4)]">
+                <p className="text-sm font-semibold text-slate-500">
+                  إجمالي الطلاب
+                </p>
+                <h2 className="mt-3 text-3xl font-extrabold text-slate-900">
+                  {students.length}
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  عدد الطلاب المسجلين في النظام.
+                </p>
+              </article>
+              <article className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-6 shadow-[0_25px_60px_-30px_rgba(20,184,166,0.35)]">
+                <p className="text-sm font-semibold text-slate-500">
+                  إجمالي المعلمين
+                </p>
+                <h2 className="mt-3 text-3xl font-extrabold text-slate-900">
+                  {teachers.length}
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  عدد المعلمين النشطين.
+                </p>
+              </article>
+              <article className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-emerald-100 p-6 shadow-[0_25px_60px_-30px_rgba(16,185,129,0.3)]">
+                <p className="text-sm font-semibold text-slate-500">
+                  إجمالي المجموعات
+                </p>
+                <h2 className="mt-3 text-3xl font-extrabold text-slate-900">
+                  {groups.length}
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  عدد المجموعات التي تم إنشاؤها.
+                </p>
+              </article>
+              <article className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-100 p-6 shadow-[0_25px_60px_-30px_rgba(20,184,166,0.25)]">
+                <p className="text-sm font-semibold text-slate-500">
+                  إجمالي أولياء الأمور
+                </p>
+                <h2 className="mt-3 text-3xl font-extrabold text-slate-900">
+                  {parents.length}
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  عدد أولياء الأمور المرتبطين بالطلاب.
+                </p>
+              </article>
+            </section>
+
+            <section className="overflow-x-auto rounded-[32px] border border-slate-200 bg-white p-3 shadow-sm mb-8">
+              <div className="flex flex-wrap items-center gap-3 px-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                      activeTab === tab.key
+                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200/60"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-              <form className="space-y-4" onSubmit={handleCreateUser}>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-sm text-slate-700">
-                    دور المستخدم
-                    <select
-                      value={userType}
-                      onChange={(e) => setUserType(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
-                    >
-                      <option value="Teacher">معلم</option>
-                      <option value="Student">طالب</option>
-                      <option value="Parent">ولي أمر</option>
-                    </select>
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    الاسم الأول
-                    <input
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      placeholder="الاسم الأول"
-                    />
-                  </label>
+            </section>
+
+            {showUserCreationPanel && (
+              <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm mb-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+                  <div>
+                    <h1 className="text-2xl font-semibold text-slate-900">
+                      إنشاء مستخدم جديد
+                    </h1>
+                    <p className="text-sm text-slate-500">
+                      أنشئ معلمين، طلاب أو أولياء أمور بسهولة من هنا.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportCredentials}
+                    disabled={isExportingCredentials}
+                    className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
+                  >
+                    {isExportingCredentials
+                      ? "جاري تحضير ملف PDF..."
+                      : "تصدير بيانات الدخول"}
+                  </button>
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-sm text-slate-700">
-                    الاسم الأخير
-                    <input
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      placeholder="الاسم الأخير"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    البريد الإلكتروني
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      placeholder="معلم@مثال.com"
-                    />
-                  </label>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-sm text-slate-700">
-                    كلمة المرور
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      placeholder="كلمة مرور آمنة"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-700">
-                    الهاتف (اختياري)
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      placeholder="مثال: +966512345678"
-                    />
-                  </label>
-                </div>
-                {userType === "Student" && (
-                  <div className="grid gap-4 md:grid-cols-1">
+                <form className="space-y-4" onSubmit={handleCreateUser}>
+                  <div className="grid gap-4 md:grid-cols-2">
                     <label className="space-y-2 text-sm text-slate-700">
-                      تعيين معلم
+                      دور المستخدم
                       <select
-                        value={selectedStudentTeacher}
+                        value={userType}
+                        onChange={(e) => setUserType(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                      >
+                        <option value="Teacher">معلم</option>
+                        <option value="Student">طالب</option>
+                        <option value="Parent">ولي أمر</option>
+                      </select>
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      الاسم الأول
+                      <input
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        placeholder="الاسم الأول"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-sm text-slate-700">
+                      الاسم الأخير
+                      <input
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        placeholder="الاسم الأخير"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      البريد الإلكتروني
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        placeholder="معلم@مثال.com"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-sm text-slate-700">
+                      كلمة المرور
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        placeholder="كلمة مرور آمنة"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-slate-700">
+                      الهاتف (اختياري)
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        placeholder="مثال: +966512345678"
+                      />
+                    </label>
+                  </div>
+                  {userType === "Student" && (
+                    <div className="grid gap-4 md:grid-cols-1">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        تعيين معلم
+                        <select
+                          value={selectedStudentTeacher}
+                          onChange={(e) =>
+                            setSelectedStudentTeacher(e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                        >
+                          {teachers.length === 0 ? (
+                            <option value="">لا يوجد معلم متاح</option>
+                          ) : (
+                            teachers.map((teacher) => (
+                              <option key={teacher._id} value={teacher._id}>
+                                {`${teacher.firstName} ${teacher.lastName}`}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </label>
+                    </div>
+                  )}
+                  {userType === "Parent" && (
+                    <div className="space-y-4 text-sm text-slate-700">
+                      <span>اختر أبناء / طلاب الوصي</span>
+                      <input
+                        type="text"
+                        value={parentStudentSearchQuery}
                         onChange={(e) =>
-                          setSelectedStudentTeacher(e.target.value)
+                          setParentStudentSearchQuery(e.target.value)
+                        }
+                        placeholder="ابحث عن اسم الطالب..."
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                      />
+
+                      <div className="flex flex-wrap gap-2">
+                        {selectedParentChildren
+                          .map((id) => students.find((s) => s._id === id))
+                          .filter(Boolean)
+                          .map((student) => (
+                            <span
+                              key={student._id}
+                              className="inline-flex items-center gap-2 rounded-full bg-quran-50 border border-quran-200 px-3 py-1 text-sm text-quran-800"
+                            >
+                              {student.firstName} {student.lastName}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeSelectedParentChild(student._id)
+                                }
+                                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-quran-600 text-white text-xs"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                      </div>
+
+                      <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 max-h-72 overflow-y-auto">
+                        {students.length === 0 ? (
+                          <p className="text-sm text-slate-500">
+                            لا يوجد طلاب مسجلين بعد
+                          </p>
+                        ) : filteredParentStudents.length === 0 ? (
+                          <p className="text-sm text-slate-500">
+                            لا يوجد طلاب يطابقون البحث
+                          </p>
+                        ) : (
+                          filteredParentStudents.map((student) => {
+                            const selected = selectedParentChildren.includes(
+                              student._id,
+                            );
+                            const labelClass = `inline-flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${selected ? "border-quran-500 bg-quran-50" : "border-slate-200 bg-white"}`;
+                            return (
+                              <label key={student._id} className={labelClass}>
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  onChange={() =>
+                                    handleToggleParentChild(student._id)
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-quran-600"
+                                />
+                                <span>{`${student.firstName} ${student.lastName}`}</span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-4">
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
+                    >
+                      أنشئ {getArabicRole(userType)}
+                    </button>
+                    {userStatus && (
+                      <span className="text-sm text-quran-700">
+                        {userStatus}
+                      </span>
+                    )}
+                  </div>
+                </form>
+              </section>
+            )}
+
+            {activeTab === "groups" && (
+              <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-slate-900">
+                      أنشئ مجموعة
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      قم بتعيين معلم وحدد الطلاب للمجموعة الجديدة.
+                    </p>
+                  </div>
+                </div>
+                <form className="space-y-4" onSubmit={handleCreateGroup}>
+                  <label className="space-y-2 text-sm text-slate-700">
+                    اسم المجموعة
+                    <input
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                      placeholder="مثال: مجموعة القرآن الصباحية"
+                    />
+                  </label>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-sm text-slate-700">
+                      معلم
+                      <select
+                        value={selectedGroupTeacher}
+                        onChange={(e) =>
+                          setSelectedGroupTeacher(e.target.value)
                         }
                         className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
                       >
@@ -991,476 +1202,364 @@ export default function SuperAdminDashboard() {
                         )}
                       </select>
                     </label>
-                  </div>
-                )}
-                {userType === "Parent" && (
-                  <div className="space-y-4 text-sm text-slate-700">
-                    <span>اختر أبناء / طلاب الوصي</span>
-                    <input
-                      type="text"
-                      value={parentStudentSearchQuery}
-                      onChange={(e) =>
-                        setParentStudentSearchQuery(e.target.value)
-                      }
-                      placeholder="ابحث عن اسم الطالب..."
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                    />
+                    <div className="space-y-2 text-sm text-slate-700">
+                      <span>الطلاب</span>
+                      <input
+                        type="text"
+                        value={studentSearchQuery}
+                        onChange={(e) => setStudentSearchQuery(e.target.value)}
+                        placeholder="ابحث عن اسم الطالب..."
+                        className="w-full mb-3 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                      />
 
-                    <div className="flex flex-wrap gap-2">
-                      {selectedParentChildren
-                        .map((id) => students.find((s) => s._id === id))
-                        .filter(Boolean)
-                        .map((student) => (
-                          <span
-                            key={student._id}
-                            className="inline-flex items-center gap-2 rounded-full bg-quran-50 border border-quran-200 px-3 py-1 text-sm text-quran-800"
-                          >
-                            {student.firstName} {student.lastName}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeSelectedParentChild(student._id)
-                              }
-                              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-quran-600 text-white text-xs"
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {selectedGroupStudents
+                          .map((id) => students.find((s) => s._id === id))
+                          .filter(Boolean)
+                          .map((student) => (
+                            <span
+                              key={student._id}
+                              className="inline-flex items-center gap-2 rounded-full bg-quran-50 border border-quran-200 px-3 py-1 text-sm text-quran-800"
                             >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                    </div>
-
-                    <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 max-h-72 overflow-y-auto">
-                      {students.length === 0 ? (
-                        <p className="text-sm text-slate-500">
-                          لا يوجد طلاب مسجلين بعد
-                        </p>
-                      ) : filteredParentStudents.length === 0 ? (
-                        <p className="text-sm text-slate-500">
-                          لا يوجد طلاب يطابقون البحث
-                        </p>
-                      ) : (
-                        filteredParentStudents.map((student) => {
-                          const selected = selectedParentChildren.includes(
-                            student._id,
-                          );
-                          const labelClass = `inline-flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${selected ? "border-quran-500 bg-quran-50" : "border-slate-200 bg-white"}`;
-                          return (
-                            <label key={student._id} className={labelClass}>
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() =>
-                                  handleToggleParentChild(student._id)
+                              {student.firstName} {student.lastName}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeSelectedGroupStudent(student._id)
                                 }
-                                className="h-4 w-4 rounded border-slate-300 text-quran-600"
-                              />
-                              <span>{`${student.firstName} ${student.lastName}`}</span>
-                            </label>
-                          );
-                        })
-                      )}
+                                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-quran-600 text-white text-xs"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                      </div>
+
+                      <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 max-h-72 overflow-y-auto">
+                        {selectedGroupTeacher === "" ? (
+                          <p className="text-sm text-slate-500">
+                            اختر معلمًا أولاً لرؤية الطلاب
+                          </p>
+                        ) : filteredGroupStudentsBySearch.length === 0 ? (
+                          <p className="text-sm text-slate-500">
+                            لا يوجد طلاب مرتبطين بهذا المعلم
+                          </p>
+                        ) : (
+                          filteredGroupStudentsBySearch.map((student) => {
+                            const selected = selectedGroupStudents.includes(
+                              student._id,
+                            );
+                            const labelClass = `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm ${selected ? "border-quran-500 bg-quran-50" : "border-slate-200 bg-white"}`;
+                            return (
+                              <label key={student._id} className={labelClass}>
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  onChange={() =>
+                                    handleToggleGroupStudent(student._id)
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-quran-600"
+                                />
+                                <span>{`${student.firstName} ${student.lastName}`}</span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
-                <div className="flex items-center justify-between gap-4">
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
-                  >
-                    أنشئ {getArabicRole(userType)}
-                  </button>
-                  {userStatus && (
-                    <span className="text-sm text-quran-700">{userStatus}</span>
-                  )}
-                </div>
-              </form>
-            </section>
-
-            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-semibold text-slate-900">
-                    أنشئ مجموعة
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    قم بتعيين معلم وحدد الطلاب للمجموعة الجديدة.
-                  </p>
-                </div>
-              </div>
-              <form className="space-y-4" onSubmit={handleCreateGroup}>
-                <label className="space-y-2 text-sm text-slate-700">
-                  اسم المجموعة
-                  <input
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                    placeholder="مثال: مجموعة القرآن الصباحية"
-                  />
-                </label>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-sm text-slate-700">
-                    معلم
-                    <select
-                      value={selectedGroupTeacher}
-                      onChange={(e) => setSelectedGroupTeacher(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                  <div className="flex items-center justify-between gap-4">
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-700"
                     >
-                      {teachers.length === 0 ? (
-                        <option value="">لا يوجد معلم متاح</option>
-                      ) : (
-                        teachers.map((teacher) => (
-                          <option key={teacher._id} value={teacher._id}>
-                            {`${teacher.firstName} ${teacher.lastName}`}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </label>
-                  <div className="space-y-2 text-sm text-slate-700">
-                    <span>الطلاب</span>
-                    <input
-                      type="text"
-                      value={studentSearchQuery}
-                      onChange={(e) => setStudentSearchQuery(e.target.value)}
-                      placeholder="ابحث عن اسم الطالب..."
-                      className="w-full mb-3 rounded-2xl border border-slate-300 px-4 py-2 text-sm"
-                    />
-
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      {selectedGroupStudents
-                        .map((id) => students.find((s) => s._id === id))
-                        .filter(Boolean)
-                        .map((student) => (
-                          <span
-                            key={student._id}
-                            className="inline-flex items-center gap-2 rounded-full bg-quran-50 border border-quran-200 px-3 py-1 text-sm text-quran-800"
-                          >
-                            {student.firstName} {student.lastName}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeSelectedGroupStudent(student._id)
-                              }
-                              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-quran-600 text-white text-xs"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                    </div>
-
-                    <div className="grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 max-h-72 overflow-y-auto">
-                      {selectedGroupTeacher === "" ? (
-                        <p className="text-sm text-slate-500">
-                          اختر معلمًا أولاً لرؤية الطلاب
-                        </p>
-                      ) : filteredGroupStudentsBySearch.length === 0 ? (
-                        <p className="text-sm text-slate-500">
-                          لا يوجد طلاب مرتبطين بهذا المعلم
-                        </p>
-                      ) : (
-                        filteredGroupStudentsBySearch.map((student) => {
-                          const selected = selectedGroupStudents.includes(
-                            student._id,
-                          );
-                          const labelClass = `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm ${selected ? "border-quran-500 bg-quran-50" : "border-slate-200 bg-white"}`;
-                          return (
-                            <label key={student._id} className={labelClass}>
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() =>
-                                  handleToggleGroupStudent(student._id)
-                                }
-                                className="h-4 w-4 rounded border-slate-300 text-quran-600"
-                              />
-                              <span>{`${student.firstName} ${student.lastName}`}</span>
-                            </label>
-                          );
-                        })
-                      )}
-                    </div>
+                      أنشئ مجموعة
+                    </button>
+                    {groupStatus && (
+                      <span className="text-sm text-slate-700">
+                        {groupStatus}
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-700"
-                  >
-                    أنشئ مجموعة
-                  </button>
-                  {groupStatus && (
-                    <span className="text-sm text-slate-700">
-                      {groupStatus}
-                    </span>
-                  )}
-                </div>
-              </form>
-            </section>
+                </form>
+              </section>
+            )}
 
             {/* ========== Teacher Management Section ========== */}
-            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-2xl font-semibold text-slate-900">
-                      إدارة المعلمين
-                    </h2>
-                    <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
-                      {teachers.length} معلم
-                    </span>
+            {activeTab === "teachers" && (
+              <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-2xl font-semibold text-slate-900">
+                        إدارة المعلمين
+                      </h2>
+                      <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
+                        {teachers.length} معلم
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      حرر بيانات المعلمين المسجلين.
+                    </p>
                   </div>
-                  <p className="text-sm text-slate-500">
-                    حرر بيانات المعلمين المسجلين.
-                  </p>
+                  <input
+                    type="text"
+                    value={teacherEditSearchQuery}
+                    onChange={(e) => setTeacherEditSearchQuery(e.target.value)}
+                    placeholder="ابحث عن معلم بالاسم أو البريد الإلكتروني..."
+                    className="w-full max-w-sm rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={teacherEditSearchQuery}
-                  onChange={(e) => setTeacherEditSearchQuery(e.target.value)}
-                  placeholder="ابحث عن معلم بالاسم أو البريد الإلكتروني..."
-                  className="w-full max-w-sm rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                />
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-600">
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        الاسم
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        البريد الإلكتروني
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        الهاتف
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        إجراءات
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {filteredTeacherEdit.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan="4"
-                          className="px-4 py-6 text-center text-slate-500"
-                        >
-                          لا يوجد معلمين مطابقين للبحث.
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-600">
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          الاسم
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          البريد الإلكتروني
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          الهاتف
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          إجراءات
+                        </th>
                       </tr>
-                    ) : (
-                      filteredTeacherEdit.map((teacher) => (
-                        <tr key={teacher._id}>
-                          <td className="px-4 py-3">
-                            {teacher.firstName} {teacher.lastName}
-                          </td>
-                          <td className="px-4 py-3">{teacher.email}</td>
-                          <td className="px-4 py-3">{teacher.phone || "—"}</td>
-                          <td className="px-4 py-3">
-                            <button
-                              type="button"
-                              onClick={() => openTeacherEditModal(teacher)}
-                              className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
-                            >
-                              تحرير
-                            </button>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {filteredTeacherEdit.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan="4"
+                            className="px-4 py-6 text-center text-slate-500"
+                          >
+                            لا يوجد معلمين مطابقين للبحث.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                      ) : (
+                        filteredTeacherEdit.map((teacher) => (
+                          <tr key={teacher._id}>
+                            <td className="px-4 py-3">
+                              {teacher.firstName} {teacher.lastName}
+                            </td>
+                            <td className="px-4 py-3">{teacher.email}</td>
+                            <td className="px-4 py-3">
+                              {teacher.phone || "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                onClick={() => openTeacherEditModal(teacher)}
+                                className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                              >
+                                تحرير
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
 
             {/* ========== Parent Management Section ========== */}
-            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-2xl font-semibold text-slate-900">
-                      إدارة أولياء الأمور
-                    </h2>
-                    <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
-                      {parents.length} ولي أمر
-                    </span>
+            {activeTab === "parents" && (
+              <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-2xl font-semibold text-slate-900">
+                        إدارة أولياء الأمور
+                      </h2>
+                      <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
+                        {parents.length} ولي أمر
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      حرر بيانات أولياء الأمور المسجلين.
+                    </p>
                   </div>
-                  <p className="text-sm text-slate-500">
-                    حرر بيانات أولياء الأمور المسجلين.
-                  </p>
+                  <input
+                    type="text"
+                    value={parentEditSearchQuery}
+                    onChange={(e) => setParentEditSearchQuery(e.target.value)}
+                    placeholder="ابحث عن ولي أمر بالاسم أو البريد الإلكتروني..."
+                    className="w-full max-w-sm rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={parentEditSearchQuery}
-                  onChange={(e) => setParentEditSearchQuery(e.target.value)}
-                  placeholder="ابحث عن ولي أمر بالاسم أو البريد الإلكتروني..."
-                  className="w-full max-w-sm rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                />
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-600">
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        الاسم
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        البريد الإلكتروني
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        الهاتف
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        الأبناء
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        إجراءات
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {filteredParentEdit.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan="5"
-                          className="px-4 py-6 text-center text-slate-500"
-                        >
-                          لا يوجد أولياء أمور مطابقين للبحث.
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-600">
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          الاسم
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          البريد الإلكتروني
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          الهاتف
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          الأبناء
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          إجراءات
+                        </th>
                       </tr>
-                    ) : (
-                      filteredParentEdit.map((parent) => {
-                        const parentChildren = (parent.childrenIds || [])
-                          .map((id) => {
-                            const sid = String(id?._id || id);
-                            return students.find((s) => s._id === sid);
-                          })
-                          .filter(Boolean);
-                        return (
-                          <tr key={parent._id}>
-                            <td className="px-4 py-3">
-                              {parent.firstName} {parent.lastName}
-                            </td>
-                            <td className="px-4 py-3">{parent.email}</td>
-                            <td className="px-4 py-3">{parent.phone || "—"}</td>
-                            <td className="px-4 py-3">
-                              {parentChildren.length > 0
-                                ? parentChildren
-                                    .map((s) => `${s.firstName} ${s.lastName}`)
-                                    .join("، ")
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-3">
-                              <button
-                                type="button"
-                                onClick={() => openParentEditModal(parent)}
-                                className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
-                              >
-                                تحرير
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {filteredParentEdit.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan="5"
+                            className="px-4 py-6 text-center text-slate-500"
+                          >
+                            لا يوجد أولياء أمور مطابقين للبحث.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredParentEdit.map((parent) => {
+                          const parentChildren = (parent.childrenIds || [])
+                            .map((id) => {
+                              const sid = String(id?._id || id);
+                              return students.find((s) => s._id === sid);
+                            })
+                            .filter(Boolean);
+                          return (
+                            <tr key={parent._id}>
+                              <td className="px-4 py-3">
+                                {parent.firstName} {parent.lastName}
+                              </td>
+                              <td className="px-4 py-3">{parent.email}</td>
+                              <td className="px-4 py-3">
+                                {parent.phone || "—"}
+                              </td>
+                              <td className="px-4 py-3">
+                                {parentChildren.length > 0
+                                  ? parentChildren
+                                      .map(
+                                        (s) => `${s.firstName} ${s.lastName}`,
+                                      )
+                                      .join("، ")
+                                  : "—"}
+                              </td>
+                              <td className="px-4 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() => openParentEditModal(parent)}
+                                  className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                                >
+                                  تحرير
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
 
             {/* ========== Student Management Section ========== */}
-            <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-2xl font-semibold text-slate-900">
-                      إدارة الطلاب
-                    </h2>
-                    <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
-                      {filteredStudentManagement.length} / {students.length}{" "}
-                      طالب
-                    </span>
+            {activeTab === "students" && (
+              <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-2xl font-semibold text-slate-900">
+                        إدارة الطلاب
+                      </h2>
+                      <span className="inline-flex items-center rounded-full bg-quran-100 px-3 py-1 text-xs font-semibold text-quran-700">
+                        {filteredStudentManagement.length} / {students.length}{" "}
+                        طالب
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      حرر المعلم والمجموعة وولي الأمر لكل طالب مسجل.
+                    </p>
                   </div>
-                  <p className="text-sm text-slate-500">
-                    حرر المعلم والمجموعة وولي الأمر لكل طالب مسجل.
-                  </p>
+                  <input
+                    type="text"
+                    value={studentManagementSearchQuery}
+                    onChange={(e) =>
+                      setStudentManagementSearchQuery(e.target.value)
+                    }
+                    placeholder="ابحث عن طالب بالاسم أو البريد الإلكتروني..."
+                    className="w-full max-w-sm rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={studentManagementSearchQuery}
-                  onChange={(e) =>
-                    setStudentManagementSearchQuery(e.target.value)
-                  }
-                  placeholder="ابحث عن طالب بالاسم أو البريد الإلكتروني..."
-                  className="w-full max-w-sm rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                />
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-600">
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        الاسم
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        البريد الإلكتروني
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        المعلم الحالي
-                      </th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
-                        إجراءات
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {filteredStudentManagement.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan="4"
-                          className="px-4 py-6 text-center text-slate-500"
-                        >
-                          لا يوجد طلاب مطابقين للبحث.
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-600">
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          الاسم
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          البريد الإلكتروني
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          المعلم الحالي
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left font-medium">
+                          إجراءات
+                        </th>
                       </tr>
-                    ) : (
-                      filteredStudentManagement.map((student) => {
-                        const teacher = teachers.find(
-                          (t) => String(t._id) === String(student.teacherId),
-                        );
-                        return (
-                          <tr key={student._id}>
-                            <td className="px-4 py-3">
-                              {student.firstName} {student.lastName}
-                            </td>
-                            <td className="px-4 py-3">{student.email}</td>
-                            <td className="px-4 py-3">
-                              {teacher
-                                ? `${teacher.firstName} ${teacher.lastName}`
-                                : "غير معين"}
-                            </td>
-                            <td className="px-4 py-3">
-                              <button
-                                type="button"
-                                onClick={() => openStudentEditModal(student)}
-                                className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
-                              >
-                                تحرير
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {filteredStudentManagement.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan="4"
+                            className="px-4 py-6 text-center text-slate-500"
+                          >
+                            لا يوجد طلاب مطابقين للبحث.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredStudentManagement.map((student) => {
+                          const teacher = teachers.find(
+                            (t) => String(t._id) === String(student.teacherId),
+                          );
+                          return (
+                            <tr key={student._id}>
+                              <td className="px-4 py-3">
+                                {student.firstName} {student.lastName}
+                              </td>
+                              <td className="px-4 py-3">{student.email}</td>
+                              <td className="px-4 py-3">
+                                {teacher
+                                  ? `${teacher.firstName} ${teacher.lastName}`
+                                  : "غير معين"}
+                              </td>
+                              <td className="px-4 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() => openStudentEditModal(student)}
+                                  className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                                >
+                                  تحرير
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
 
             {/* ===== Teacher Edit Modal ===== */}
             {isTeacherEditModalOpen && editingTeacher && (
@@ -1893,136 +1992,139 @@ export default function SuperAdminDashboard() {
             </section>
 
             {/* ========== Points System Management Section ========== */}
-            <section className="rounded-3xl bg-white border border-slate-200 p-8 shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-slate-900">
-                  إدارة نظام النقاط
-                </h2>
-                <p className="text-sm text-slate-500">
-                  تحكم في نقاط الحضور والتقييمات وخصومات الأخطاء بشكل ديناميكي.
-                </p>
-              </div>
-              <form className="space-y-6" onSubmit={handleSaveSettings}>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-3">
-                    نقاط الحضور والغياب
-                  </h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <label className="space-y-2 text-sm text-slate-700">
-                      نقاط الحضور
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.attendancePoints}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "attendancePoints",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-slate-700">
-                      خصم الغياب بعذر
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.excusedAbsencePoints}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "excusedAbsencePoints",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-slate-700">
-                      خصم الغياب بدون عذر
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.unexcusedAbsencePoints}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "unexcusedAbsencePoints",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
+            {activeTab === "settings" && (
+              <section className="rounded-3xl bg-white border border-slate-200 p-8 shadow-sm">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-semibold text-slate-900">
+                    إدارة نظام النقاط
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    تحكم في نقاط الحضور والتقييمات وخصومات الأخطاء بشكل
+                    ديناميكي.
+                  </p>
+                </div>
+                <form className="space-y-6" onSubmit={handleSaveSettings}>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">
+                      نقاط الحضور والغياب
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        نقاط الحضور
+                        <input
+                          type="number"
+                          min="0"
+                          value={settings.attendancePoints}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "attendancePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        خصم الغياب بعذر
+                        <input
+                          type="number"
+                          min="0"
+                          value={settings.excusedAbsencePoints}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "excusedAbsencePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        خصم الغياب بدون عذر
+                        <input
+                          type="number"
+                          min="0"
+                          value={settings.unexcusedAbsencePoints}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "unexcusedAbsencePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        />
+                      </label>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-3">
-                    نقاط التقييمات
-                  </h3>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const scoreKey = `score_${index + 1}`;
-                      return (
-                        <label
-                          key={scoreKey}
-                          className="space-y-2 text-sm text-slate-700"
-                        >
-                          درجة {index + 1} من 10
-                          <input
-                            type="number"
-                            min="0"
-                            value={settings[scoreKey] ?? 0}
-                            onChange={(e) =>
-                              handleSettingsChange(scoreKey, e.target.value)
-                            }
-                            className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                          />
-                        </label>
-                      );
-                    })}
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">
+                      نقاط التقييمات
+                    </h3>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                      {Array.from({ length: 10 }, (_, index) => {
+                        const scoreKey = `score_${index + 1}`;
+                        return (
+                          <label
+                            key={scoreKey}
+                            className="space-y-2 text-sm text-slate-700"
+                          >
+                            درجة {index + 1} من 10
+                            <input
+                              type="number"
+                              min="0"
+                              value={settings[scoreKey] ?? 0}
+                              onChange={(e) =>
+                                handleSettingsChange(scoreKey, e.target.value)
+                              }
+                              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-3">
-                    الخصومات
-                  </h3>
-                  <div className="grid gap-4 md:grid-cols-1 max-w-xs">
-                    <label className="space-y-2 text-sm text-slate-700">
-                      الخصم المستقطع لكل خطأ
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={settings.errorPenaltyMultiplier}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            "errorPenaltyMultiplier",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                      />
-                    </label>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">
+                      الخصومات
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-1 max-w-xs">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الخصم المستقطع لكل خطأ
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={settings.errorPenaltyMultiplier}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "errorPenaltyMultiplier",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        />
+                      </label>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-4">
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
-                  >
-                    حفظ الإعدادات
-                  </button>
-                  {settingsStatus && (
-                    <span className="text-sm text-emerald-700">
-                      {settingsStatus}
-                    </span>
-                  )}
-                </div>
-              </form>
-            </section>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
+                    >
+                      حفظ الإعدادات
+                    </button>
+                    {settingsStatus && (
+                      <span className="text-sm text-emerald-700">
+                        {settingsStatus}
+                      </span>
+                    )}
+                  </div>
+                </form>
+              </section>
+            )}
 
             <section className="rounded-3xl bg-white border border-slate-200 p-8 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

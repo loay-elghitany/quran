@@ -15,6 +15,7 @@ let teacherToken;
 let teacher;
 let student;
 let parent;
+let group;
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
@@ -56,7 +57,7 @@ beforeEach(async () => {
   });
   await parent.save();
 
-  const group = new Group({
+  group = new Group({
     name: "Test Group",
     teacherId: teacher._id,
     studentIds: [student._id],
@@ -119,6 +120,56 @@ describe("POST /api/teacher/assignments", () => {
       parent.phone,
       `New assignment for Student: Excellent`,
     );
+  });
+});
+
+describe("POST /api/teacher/evaluations", () => {
+  it("should create an evaluation with 0 points for excused absences", async () => {
+    const response = await request(app)
+      .post("/api/teacher/evaluations")
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .send({
+        studentId: student._id.toString(),
+        groupId: group._id.toString(),
+        attendanceStatus: "غائب بعذر",
+        memorizationFrom: "الفاتحة",
+        memorizationTo: "البقرة",
+        revisionFrom: "آل عمران",
+        revisionTo: "النساء",
+        mistakes: 0,
+        grade: "10",
+        notes: "غياب بعذر",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.evaluation.earnedPoints).toBe(0);
+
+    const updatedStudent = await User.findById(student._id);
+    expect(updatedStudent.points).toBe(0);
+  });
+
+  it("should deduct 15 points for unexcused absences from the student's point balance", async () => {
+    const response = await request(app)
+      .post("/api/teacher/evaluations")
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .send({
+        studentId: student._id.toString(),
+        groupId: group._id.toString(),
+        attendanceStatus: "غائب بدون عذر",
+        memorizationFrom: "الفاتحة",
+        memorizationTo: "البقرة",
+        revisionFrom: "آل عمران",
+        revisionTo: "النساء",
+        mistakes: 0,
+        grade: "10",
+        notes: "غياب بدون عذر",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.evaluation.earnedPoints).toBe(0);
+
+    const updatedStudent = await User.findById(student._id);
+    expect(updatedStudent.points).toBe(-15);
   });
 });
 

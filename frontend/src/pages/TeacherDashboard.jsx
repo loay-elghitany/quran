@@ -94,6 +94,21 @@ export default function TeacherDashboard() {
   const [selectedBadgeStudent, setSelectedBadgeStudent] = useState(null);
   const [awardMessage, setAwardMessage] = useState("");
 
+  const isAttendanceLocked = ["غائب بعذر", "غائب بدون عذر"].includes(
+    evaluation.attendanceStatus,
+  );
+  const evaluationFieldClass = `mt-2 w-full rounded-3xl border px-4 py-3 text-sm ${
+    isAttendanceLocked
+      ? "border-slate-200 bg-slate-100 text-slate-500"
+      : "border-slate-300 bg-white text-slate-900"
+  }`;
+  const evaluationButtonClass = isAttendanceLocked
+    ? "rounded-3xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500 cursor-not-allowed"
+    : "rounded-3xl bg-quran-600 px-4 py-3 text-sm font-semibold text-white hover:bg-quran-700";
+  const secondaryButtonClass = isAttendanceLocked
+    ? "rounded-3xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-500 cursor-not-allowed"
+    : "rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100";
+
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
@@ -768,174 +783,200 @@ export default function TeacherDashboard() {
                     * ملاحظة: تسجيل الطالب قد يستغرق حتى 20 دقيقة من تحديثه.
                   </p>
                 </label>
-                <label className="block text-sm text-slate-700">
-                  التقييم العام
-                  <select
-                    value={evaluation.grade}
-                    onChange={(e) =>
-                      handleEvaluationChange("grade", e.target.value)
-                    }
-                    className="mt-2 w-full sm:w-auto rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                  >
-                    {gradeOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <label className="block text-sm text-slate-700">
-                  سورة من
-                  <input
-                    value={evaluation.memorizationFrom}
-                    onChange={(e) =>
-                      handleEvaluationChange("memorizationFrom", e.target.value)
-                    }
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                    placeholder="مثال: الفاتحة"
-                  />
-                </label>
-                <label className="block text-sm text-slate-700">
-                  سورة إلى
-                  <input
-                    value={evaluation.memorizationTo}
-                    onChange={(e) =>
-                      handleEvaluationChange("memorizationTo", e.target.value)
-                    }
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                    placeholder="مثال: البقرة"
-                  />
-                </label>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <label className="block text-sm text-slate-700">
-                  مراجعة من
-                  <input
-                    value={evaluation.revisionFrom}
-                    onChange={(e) =>
-                      handleEvaluationChange("revisionFrom", e.target.value)
-                    }
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                    placeholder="مثال: آل عمران"
-                  />
-                </label>
-                <label className="block text-sm text-slate-700">
-                  مراجعة إلى
-                  <input
-                    value={evaluation.revisionTo}
-                    onChange={(e) =>
-                      handleEvaluationChange("revisionTo", e.target.value)
-                    }
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                    placeholder="مثال: الناس"
-                  />
-                </label>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <label className="block text-sm text-slate-700">
-                  عدد الأخطاء
-                  <input
-                    type="number"
-                    min={0}
-                    value={evaluation.mistakes}
-                    onChange={(e) =>
-                      handleEvaluationChange("mistakes", Number(e.target.value))
-                    }
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                  />
-                </label>
-                <label className="block text-sm text-slate-700">
-                  ملاحظات ولي الأمر
-                  <textarea
-                    value={evaluation.notes}
-                    onChange={(e) =>
-                      handleEvaluationChange("notes", e.target.value)
-                    }
-                    rows={3}
-                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                    placeholder="أضف ملاحظة قصيرة لولي الأمر"
-                  />
-                </label>
-
-                <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
-                        التسجيل الصوتي
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        اضغط لبدء التسجيل ثم أوقفه للاستماع.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      {!isRecording && (
-                        <button
-                          type="button"
-                          onClick={handleStartRecording}
-                          className="rounded-3xl bg-quran-600 px-4 py-3 text-sm font-semibold text-white hover:bg-quran-700"
-                        >
-                          بدء التسجيل
-                        </button>
-                      )}
-                      {isRecording && (
-                        <button
-                          type="button"
-                          onClick={handleStopRecording}
-                          className="rounded-3xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700"
-                        >
-                          إيقاف التسجيل
-                        </button>
-                      )}
-                      {(recordedAudioUrl || recordingError) && (
-                        <button
-                          type="button"
-                          onClick={cleanupRecording}
-                          className="rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                        >
-                          حذف / إعادة تسجيل
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {isRecording && (
-                    <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">
-                      يتم التسجيل الآن... يمكنك التحدث عبر الميكروفون.
-                    </div>
-                  )}
-
-                  {recordingError && (
-                    <p className="text-sm text-rose-600">{recordingError}</p>
-                  )}
-
-                  {recordedAudioUrl && (
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold text-slate-900">
-                        معاينة التسجيل
-                      </p>
-                      <audio
-                        controls
-                        src={recordedAudioUrl}
-                        className="w-full rounded-3xl border border-slate-300 bg-white p-3"
-                      />
-                    </div>
-                  )}
+              {isAttendanceLocked && (
+                <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  تم قفل باقي حقول التقييم لأن الطالب في حالة غياب. يمكنك حفظ
+                  الحالة أو العودة إلى "حاضر" لتعديل التقييم.
                 </div>
-              </div>
-              <label className="block text-sm text-slate-700">
-                ملاحظة صوتية (اختياري)
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) => setAudioFile(e.target.files[0] || null)}
-                  className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
-                />
-              </label>
+              )}
+
+              <fieldset disabled={isAttendanceLocked} className="space-y-6">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <label className="block text-sm text-slate-700">
+                    التقييم العام
+                    <select
+                      value={evaluation.grade}
+                      onChange={(e) =>
+                        handleEvaluationChange("grade", e.target.value)
+                      }
+                      className={evaluationFieldClass}
+                    >
+                      {gradeOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <label className="block text-sm text-slate-700">
+                    سورة من
+                    <input
+                      value={evaluation.memorizationFrom}
+                      onChange={(e) =>
+                        handleEvaluationChange(
+                          "memorizationFrom",
+                          e.target.value,
+                        )
+                      }
+                      className={evaluationFieldClass}
+                      placeholder="مثال: الفاتحة"
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
+                    سورة إلى
+                    <input
+                      value={evaluation.memorizationTo}
+                      onChange={(e) =>
+                        handleEvaluationChange("memorizationTo", e.target.value)
+                      }
+                      className={evaluationFieldClass}
+                      placeholder="مثال: البقرة"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <label className="block text-sm text-slate-700">
+                    مراجعة من
+                    <input
+                      value={evaluation.revisionFrom}
+                      onChange={(e) =>
+                        handleEvaluationChange("revisionFrom", e.target.value)
+                      }
+                      className={evaluationFieldClass}
+                      placeholder="مثال: آل عمران"
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
+                    مراجعة إلى
+                    <input
+                      value={evaluation.revisionTo}
+                      onChange={(e) =>
+                        handleEvaluationChange("revisionTo", e.target.value)
+                      }
+                      className={evaluationFieldClass}
+                      placeholder="مثال: الناس"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <label className="block text-sm text-slate-700">
+                    عدد الأخطاء
+                    <input
+                      type="number"
+                      min={0}
+                      value={evaluation.mistakes}
+                      onChange={(e) =>
+                        handleEvaluationChange(
+                          "mistakes",
+                          Number(e.target.value),
+                        )
+                      }
+                      className={evaluationFieldClass}
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
+                    ملاحظات ولي الأمر
+                    <textarea
+                      value={evaluation.notes}
+                      onChange={(e) =>
+                        handleEvaluationChange("notes", e.target.value)
+                      }
+                      rows={3}
+                      className={evaluationFieldClass}
+                      placeholder="أضف ملاحظة قصيرة لولي الأمر"
+                    />
+                  </label>
+
+                  <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          التسجيل الصوتي
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          اضغط لبدء التسجيل ثم أوقفه للاستماع.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        {!isRecording && (
+                          <button
+                            type="button"
+                            onClick={handleStartRecording}
+                            className="rounded-3xl bg-quran-600 px-4 py-3 text-sm font-semibold text-white hover:bg-quran-700"
+                          >
+                            بدء التسجيل
+                          </button>
+                        )}
+                        {isRecording && (
+                          <button
+                            type="button"
+                            onClick={handleStopRecording}
+                            className={
+                              isAttendanceLocked
+                                ? secondaryButtonClass
+                                : "rounded-3xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700"
+                            }
+                          >
+                            إيقاف التسجيل
+                          </button>
+                        )}
+                        {(recordedAudioUrl || recordingError) && (
+                          <button
+                            type="button"
+                            onClick={cleanupRecording}
+                            className={
+                              isAttendanceLocked
+                                ? secondaryButtonClass
+                                : "rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                            }
+                          >
+                            حذف / إعادة تسجيل
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isRecording && (
+                      <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">
+                        يتم التسجيل الآن... يمكنك التحدث عبر الميكروفون.
+                      </div>
+                    )}
+
+                    {recordingError && (
+                      <p className="text-sm text-rose-600">{recordingError}</p>
+                    )}
+
+                    {recordedAudioUrl && (
+                      <div className="space-y-3">
+                        <p className="text-sm font-semibold text-slate-900">
+                          معاينة التسجيل
+                        </p>
+                        <audio
+                          controls
+                          src={recordedAudioUrl}
+                          className="w-full rounded-3xl border border-slate-300 bg-white p-3"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <label className="block text-sm text-slate-700">
+                  ملاحظة صوتية (اختياري)
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => setAudioFile(e.target.files[0] || null)}
+                    className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                  />
+                </label>
+              </fieldset>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:justify-end">
                 <button
