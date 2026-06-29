@@ -7,6 +7,7 @@ const {
   updateStudent,
   updateTeacher,
   updateParent,
+  deleteUser,
   getUsers,
   getGroups,
   exportStudentCredentials,
@@ -95,6 +96,7 @@ router.get("/users", getUsers);
 router.get("/groups", getGroups);
 router.get("/export/students-credentials", exportStudentCredentials);
 router.post("/users", createUser);
+router.delete("/users/:id", validateParams(idParamsSchema), deleteUser);
 router.post("/groups", createGroup);
 router.put(
   "/groups/:groupId",

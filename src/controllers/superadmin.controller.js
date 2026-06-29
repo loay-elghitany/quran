@@ -401,6 +401,71 @@ const updateParent = async (req, res, next) => {
   }
 };
 
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود.",
+      });
+    }
+
+    if (user.role === "Student") {
+      await Group.updateMany(
+        { studentIds: user._id },
+        { $pull: { studentIds: user._id } },
+      );
+      await User.updateMany(
+        { role: "Parent", childrenIds: user._id },
+        { $pull: { childrenIds: user._id } },
+      );
+    }
+
+    if (user.role === "Teacher") {
+      const assignedStudents = await User.countDocuments({
+        role: "Student",
+        teacherId: user._id,
+      });
+      if (assignedStudents > 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "لا يمكن حذف هذا المعلم لأنه مرتبط بطلبة. يرجى إعادة تعيين أو حذف الطلاب أولاً.",
+        });
+      }
+      const assignedGroups = await Group.countDocuments({
+        teacherId: user._id,
+      });
+      if (assignedGroups > 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "لا يمكن حذف هذا المعلم لأنه مرتبط بمجموعات. يرجى إعادة تعيين أو حذف المجموعات أولاً.",
+        });
+      }
+    }
+
+    if (user.role === "Parent") {
+      await User.updateMany(
+        { childrenIds: user._id },
+        { $pull: { childrenIds: user._id } },
+      );
+    }
+
+    await user.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "تم حذف المستخدم بنجاح.",
+    });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
 const getSystemSettings = async (req, res, next) => {
   try {
     let settings = await SystemSettings.findOne();
@@ -500,6 +565,7 @@ module.exports = {
   updateStudent,
   updateTeacher,
   updateParent,
+  deleteUser,
   getUsers,
   getGroups,
   exportStudentCredentials,

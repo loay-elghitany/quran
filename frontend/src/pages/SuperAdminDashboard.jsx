@@ -812,6 +812,27 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleDeleteUser = async (userId, role) => {
+    const confirmed = window.confirm(
+      "هل أنت متأكد من حذف هذا الحساب نهائياً من قاعدة البيانات؟",
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/admin/users/${userId}`);
+
+      if (role === "Teacher") {
+        setTeachers((prev) => prev.filter((user) => user._id !== userId));
+      } else if (role === "Parent") {
+        setParents((prev) => prev.filter((user) => user._id !== userId));
+      } else if (role === "Student") {
+        setStudents((prev) => prev.filter((user) => user._id !== userId));
+      }
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+    }
+  };
+
   const filteredGroupStudents = selectedGroupTeacher
     ? students.filter(
         (student) => String(student.teacherId) === selectedGroupTeacher,
@@ -1350,13 +1371,24 @@ export default function SuperAdminDashboard() {
                               {teacher.phone || "—"}
                             </td>
                             <td className="px-4 py-3">
-                              <button
-                                type="button"
-                                onClick={() => openTeacherEditModal(teacher)}
-                                className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
-                              >
-                                تحرير
-                              </button>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openTeacherEditModal(teacher)}
+                                  className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                                >
+                                  تحرير
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteUser(teacher._id, "Teacher")
+                                  }
+                                  className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                                >
+                                  حذف
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -1451,13 +1483,24 @@ export default function SuperAdminDashboard() {
                                   : "—"}
                               </td>
                               <td className="px-4 py-3">
-                                <button
-                                  type="button"
-                                  onClick={() => openParentEditModal(parent)}
-                                  className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
-                                >
-                                  تحرير
-                                </button>
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openParentEditModal(parent)}
+                                    className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                                  >
+                                    تحرير
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleDeleteUser(parent._id, "Parent")
+                                    }
+                                    className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                                  >
+                                    حذف
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1543,13 +1586,26 @@ export default function SuperAdminDashboard() {
                                   : "غير معين"}
                               </td>
                               <td className="px-4 py-3">
-                                <button
-                                  type="button"
-                                  onClick={() => openStudentEditModal(student)}
-                                  className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
-                                >
-                                  تحرير
-                                </button>
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      openStudentEditModal(student)
+                                    }
+                                    className="rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
+                                  >
+                                    تحرير
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleDeleteUser(student._id, "Student")
+                                    }
+                                    className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                                  >
+                                    حذف
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
