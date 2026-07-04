@@ -51,6 +51,8 @@ const defaultEvaluation = {
   mistakes: 0,
   grade: "10",
   notes: "",
+  memorizationPagesCount: 0,
+  revisionPagesCount: 0,
 };
 
 export default function TeacherDashboard() {
@@ -63,6 +65,7 @@ export default function TeacherDashboard() {
   const [evaluation, setEvaluation] = useState(defaultEvaluation);
   const [statusMessage, setStatusMessage] = useState("");
   const [toastMessage, setToastMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [complaintsModalOpen, setComplaintsModalOpen] = useState(false);
   const [userTickets, setUserTickets] = useState([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
@@ -335,6 +338,35 @@ export default function TeacherDashboard() {
     }
   };
 
+  const handleDeleteEvaluation = async (evaluationId) => {
+    if (!evaluationId) return;
+    const confirmed = window.confirm(
+      "هل أنت متأكد من حذف هذا التقييم نهائياً وإعادة رصيد نقاط الطالب الحقيقي؟",
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/teacher/evaluations/${evaluationId}`);
+      setHistoryItems((prev) => prev.filter((it) => it._id !== evaluationId));
+      setToastMessage("تم حذف التقييم وتحديث رصيد نقاط الطالب بنجاح.");
+
+      // Refresh groups to reflect updated points in the UI
+      try {
+        const response = await api.get("/teacher/students-with-evaluations");
+        setGroups(response.data.groups || []);
+      } catch (err) {
+        // ignore refresh errors but keep user notified
+        console.error("Failed to refresh groups after evaluation delete:", err);
+      }
+
+      setTimeout(() => setToastMessage(""), 4000);
+    } catch (error) {
+      console.error("Failed to delete evaluation:", error);
+      setToastMessage(getApiErrorMessage(error, "حدث خطأ أثناء حذف التقييم."));
+      setTimeout(() => setToastMessage(""), 4000);
+    }
+  };
+
   const fetchCurrentLessons = async () => {
     const lessonsByGroup = {};
     await Promise.all(
@@ -450,12 +482,19 @@ export default function TeacherDashboard() {
   const handleEvaluationSubmit = async (e) => {
     e.preventDefault();
 
+    if (isSubmitting) {
+      return;
+    }
+
     if (!selectedStudent || !selectedGroup) {
       setToastMessage("يرجى اختيار طالب ومجموعة قبل حفظ التقييم.");
       return;
     }
 
+    setIsSubmitting(true);
     try {
+      const memoPages = Number(String(evaluation.memorizationPagesCount || 0));
+      const revPages = Number(String(evaluation.revisionPagesCount || 0));
       const formData = new FormData();
       formData.append("studentId", selectedStudent._id);
       formData.append("groupId", selectedGroup._id);
@@ -464,7 +503,9 @@ export default function TeacherDashboard() {
       formData.append("memorizationTo", evaluation.memorizationTo);
       formData.append("revisionFrom", evaluation.revisionFrom);
       formData.append("revisionTo", evaluation.revisionTo);
-      formData.append("mistakes", evaluation.mistakes);
+      formData.append("memorizationPagesCount", memoPages);
+      formData.append("revisionPagesCount", revPages);
+      formData.append("mistakes", Number(String(evaluation.mistakes || 0)));
       formData.append("grade", evaluation.grade);
       formData.append("notes", evaluation.notes);
 
@@ -494,6 +535,8 @@ export default function TeacherDashboard() {
     } catch (error) {
       console.error("Failed to save evaluation:", error);
       setToastMessage("حدث خطأ أثناء حفظ التقييم. حاول مرة أخرى لاحقاً.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -882,6 +925,36 @@ export default function TeacherDashboard() {
                     />
                   </label>
                   <label className="block text-sm text-slate-700">
+                    عدد صفحات الحفظ الجديد
+                    <input
+                      type="number"
+                      min={0}
+                      value={evaluation.memorizationPagesCount}
+                      onChange={(e) =>
+                        handleEvaluationChange(
+                          "memorizationPagesCount",
+                          Number(e.target.value),
+                        )
+                      }
+                      className={evaluationFieldClass}
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
+                    عدد صفحات المراجعة
+                    <input
+                      type="number"
+                      min={0}
+                      value={evaluation.revisionPagesCount}
+                      onChange={(e) =>
+                        handleEvaluationChange(
+                          "revisionPagesCount",
+                          Number(e.target.value),
+                        )
+                      }
+                      className={evaluationFieldClass}
+                    />
+                  </label>
+                  <label className="block text-sm text-slate-700">
                     ملاحظات ولي الأمر
                     <textarea
                       value={evaluation.notes}
@@ -988,9 +1061,14 @@ export default function TeacherDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-quran-700"
+                  disabled={isSubmitting}
+                  className={`rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white shadow-sm ${
+                    isSubmitting
+                      ? "cursor-not-allowed opacity-50"
+                      : "hover:bg-quran-700"
+                  }`}
                 >
-                  حفظ التقييم
+                  {isSubmitting ? "جاري حفظ التقييم..." : "حفظ التقييم"}
                 </button>
               </div>
             </form>
@@ -1333,6 +1411,16 @@ export default function TeacherDashboard() {
                           <p className="text-base font-semibold text-slate-900">
                             {formatDate(item.date)}
                           </p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvaluation(item._id)}
+                            className="rounded-full bg-rose-100 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-200"
+                            title="حذف التقييم"
+                          >
+                            🗑️
+                          </button>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-3">
                           <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">

@@ -2,6 +2,12 @@ const User = require("../models/user.model");
 const Group = require("../models/group.model");
 const SystemSettings = require("../models/systemSettings.model");
 
+const applyIfPresent = (target, field, value, options = {}) => {
+  if (value === undefined || value === null) return;
+  if (options.skipEmpty && value === "") return;
+  target[field] = value;
+};
+
 const createUser = async (req, res, next) => {
   try {
     const {
@@ -85,7 +91,7 @@ const getUsers = async (req, res) => {
     }
 
     const users = await User.find(filter).select(
-      "_id firstName lastName role teacherId childrenIds",
+      "_id firstName lastName role teacherId childrenIds email phone",
     );
     res.json({ users });
   } catch (error) {
@@ -180,7 +186,16 @@ const exportStudentCredentials = async (req, res, next) => {
 const updateStudent = async (req, res, next) => {
   try {
     const studentId = req.params.id;
-    const { teacherId, groupId, parentId } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      teacherId,
+      groupId,
+      parentId,
+    } = req.body;
 
     const student = await User.findById(studentId);
     if (!student || student.role !== "Student") {
@@ -188,6 +203,30 @@ const updateStudent = async (req, res, next) => {
         success: false,
         message: "الطالب غير موجود.",
       });
+    }
+
+    applyIfPresent(student, "firstName", firstName);
+    applyIfPresent(student, "lastName", lastName);
+    if (email !== undefined && email !== "") {
+      const normalizedEmail = String(email).trim().toLowerCase();
+      if (normalizedEmail !== student.email) {
+        const duplicateUser = await User.findOne({ email: normalizedEmail });
+        if (
+          duplicateUser &&
+          duplicateUser._id.toString() !== student._id.toString()
+        ) {
+          return res.status(409).json({
+            success: false,
+            message:
+              "البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد إلكتروني مختلف.",
+          });
+        }
+      }
+      student.email = normalizedEmail;
+    }
+    applyIfPresent(student, "phone", phone);
+    if (password !== undefined && password !== "") {
+      student.password = password;
     }
 
     if (teacherId) {
@@ -228,6 +267,13 @@ const updateStudent = async (req, res, next) => {
       user: updatedStudent,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد إلكتروني مختلف.",
+      });
+    }
     console.error(error);
     next(error);
   }
@@ -321,11 +367,29 @@ const updateTeacher = async (req, res, next) => {
       });
     }
 
-    if (firstName !== undefined) teacher.firstName = firstName;
-    if (lastName !== undefined) teacher.lastName = lastName;
-    if (email !== undefined) teacher.email = email;
-    if (phone !== undefined) teacher.phone = phone;
-    if (password !== undefined) teacher.password = password;
+    applyIfPresent(teacher, "firstName", firstName);
+    applyIfPresent(teacher, "lastName", lastName);
+    if (email !== undefined && email !== "") {
+      const normalizedEmail = String(email).trim().toLowerCase();
+      if (normalizedEmail !== teacher.email) {
+        const duplicateUser = await User.findOne({ email: normalizedEmail });
+        if (
+          duplicateUser &&
+          duplicateUser._id.toString() !== teacher._id.toString()
+        ) {
+          return res.status(409).json({
+            success: false,
+            message:
+              "البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد إلكتروني مختلف.",
+          });
+        }
+      }
+      teacher.email = normalizedEmail;
+    }
+    applyIfPresent(teacher, "phone", phone);
+    if (password !== undefined && password !== "") {
+      teacher.password = password;
+    }
 
     const updatedTeacher = await teacher.save();
 
@@ -367,11 +431,29 @@ const updateParent = async (req, res, next) => {
       });
     }
 
-    if (firstName !== undefined) parent.firstName = firstName;
-    if (lastName !== undefined) parent.lastName = lastName;
-    if (email !== undefined) parent.email = email;
-    if (phone !== undefined) parent.phone = phone;
-    if (password !== undefined) parent.password = password;
+    applyIfPresent(parent, "firstName", firstName);
+    applyIfPresent(parent, "lastName", lastName);
+    if (email !== undefined && email !== "") {
+      const normalizedEmail = String(email).trim().toLowerCase();
+      if (normalizedEmail !== parent.email) {
+        const duplicateUser = await User.findOne({ email: normalizedEmail });
+        if (
+          duplicateUser &&
+          duplicateUser._id.toString() !== parent._id.toString()
+        ) {
+          return res.status(409).json({
+            success: false,
+            message:
+              "البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد إلكتروني مختلف.",
+          });
+        }
+      }
+      parent.email = normalizedEmail;
+    }
+    applyIfPresent(parent, "phone", phone);
+    if (password !== undefined && password !== "") {
+      parent.password = password;
+    }
     if (childrenIds !== undefined) parent.childrenIds = childrenIds;
 
     const updatedParent = await parent.save();
@@ -488,6 +570,8 @@ const getSystemSettings = async (req, res, next) => {
       score_9: settings.score_9 ?? 9,
       score_10: settings.score_10 ?? 10,
       errorPenaltyMultiplier: settings.errorPenaltyMultiplier ?? 1,
+      memorizationPageBonus: settings.memorizationPageBonus ?? 10,
+      revisionPageBonus: settings.revisionPageBonus ?? 5,
     };
 
     res.json({ settings: normalizedSettings });
@@ -517,6 +601,8 @@ const updateSystemSettings = async (req, res, next) => {
       "gradeVeryGoodPoints",
       "gradeGoodPoints",
       "gradeAcceptablePoints",
+      "memorizationPageBonus",
+      "revisionPageBonus",
     ];
 
     const updates = {};

@@ -8,6 +8,7 @@ const {
   awardBadge,
   createAssignment,
   createEvaluation,
+  deleteEvaluation,
   getEvaluationHistory,
   getLeaveRequests,
   updateLeaveRequestStatus,
@@ -35,6 +36,7 @@ const {
   leaveRequestStatusSchema,
   awardBadgeSchema,
 } = require("../validation/schemas/teacher.schema");
+const { idParamsSchema } = require("../validation/schemas/admin.schema");
 const { cloudinaryAudioStorage } = require("../config/cloudinary");
 
 const upload = multer({
@@ -74,6 +76,11 @@ router.post(
   upload.single("audioNote"),
   validateBody(evaluationCreateSchema),
   createEvaluation,
+);
+router.delete(
+  "/evaluations/:id",
+  validateParams(idParamsSchema),
+  deleteEvaluation,
 );
 router.get(
   "/evaluations/:studentId",

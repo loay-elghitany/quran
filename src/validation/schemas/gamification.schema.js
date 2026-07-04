@@ -50,6 +50,8 @@ const gamificationSettingsSchema = Joi.object({
   excusedAbsencePoints: Joi.number().integer().min(0).optional(),
   unexcusedAbsencePoints: Joi.number().integer().min(0).optional(),
   errorPenaltyMultiplier: Joi.number().integer().min(0).optional(),
+  memorizationPageBonus: Joi.number().integer().min(0).optional(),
+  revisionPageBonus: Joi.number().integer().min(0).optional(),
   score_1: Joi.number().integer().min(0).optional(),
   score_2: Joi.number().integer().min(0).optional(),
   score_3: Joi.number().integer().min(0).optional(),

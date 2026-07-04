@@ -34,6 +34,8 @@ const evaluationCreateSchema = Joi.object({
   memorizationTo: Joi.string().trim().max(100).optional().allow(""),
   revisionFrom: Joi.string().trim().max(100).optional().allow(""),
   revisionTo: Joi.string().trim().max(100).optional().allow(""),
+  memorizationPagesCount: Joi.number().integer().min(0).optional(),
+  revisionPagesCount: Joi.number().integer().min(0).optional(),
   mistakes: Joi.number().integer().min(0).optional(),
   grade: Joi.alternatives()
     .try(

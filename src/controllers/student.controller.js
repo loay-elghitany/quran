@@ -35,13 +35,8 @@ const getStudentDashboard = async (req, res) => {
       .populate("groupId", "name")
       .populate("teacherId", "firstName lastName");
 
-    const evaluationAggregation = await Evaluation.aggregate([
-      { $match: { studentId: student._id } },
-      { $group: { _id: null, totalPoints: { $sum: "$earnedPoints" } } },
-    ]);
-    const evaluationPoints = evaluationAggregation[0]?.totalPoints || 0;
     const badgePoints = student.points || 0;
-    const totalPoints = evaluationPoints + badgePoints;
+    const totalPoints = badgePoints;
 
     const reservedAggregation = await Redemption.aggregate([
       {
@@ -58,7 +53,7 @@ const getStudentDashboard = async (req, res) => {
       },
     ]);
     const reservedPoints = reservedAggregation[0]?.reservedPoints || 0;
-    const availablePoints = totalPoints - reservedPoints;
+    const availablePoints = Math.max(0, totalPoints - reservedPoints);
 
     res.json({
       student,
@@ -74,12 +69,10 @@ const getStudentDashboard = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -120,12 +113,10 @@ const updateStudentAvatar = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -166,12 +157,10 @@ const getStudentChallenges = async (req, res) => {
     res.json({ challenges: mappedChallenges, totalPoints });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 

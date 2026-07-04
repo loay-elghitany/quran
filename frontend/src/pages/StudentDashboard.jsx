@@ -143,9 +143,10 @@ export default function StudentDashboard() {
   const previousRankRef = useRef(null);
 
   const pointsBalance =
-    totalPoints !== null
-      ? totalPoints
-      : (dashboard?.points?.totalPoints ?? dashboard?.student?.points ?? 0);
+    dashboard?.student?.points ??
+    dashboard?.points?.totalPoints ??
+    totalPoints ??
+    0;
 
   const currentRank = getRankInfo(pointsBalance);
   const rankRange = currentRank.milestoneCap - currentRank.min;
@@ -232,8 +233,18 @@ export default function StudentDashboard() {
       try {
         const response = await api.get("/student/rewards");
         setAvailablePoints(response.data.availablePoints ?? 0);
-        setTotalPoints(response.data.totalPoints ?? 0);
         setReservedPoints(response.data.reservedPoints ?? 0);
+
+        const rewardTotal = response.data.totalPoints;
+        if (
+          typeof dashboard?.student?.points === "number" &&
+          rewardTotal !== undefined &&
+          rewardTotal !== null
+        ) {
+          setTotalPoints(dashboard.student.points);
+        } else {
+          setTotalPoints(rewardTotal ?? 0);
+        }
       } catch (err) {
         console.error("فشل تحميل رصيد النقاط:", err);
       }
@@ -425,7 +436,7 @@ export default function StudentDashboard() {
                         إجمالي النقاط
                       </p>
                       <p className="mt-2 text-xl font-semibold">
-                        {totalPoints ?? 0}
+                        {pointsBalance ?? 0}
                       </p>
                     </div>
                     <div className="rounded-3xl bg-white/15 p-4 text-sm text-white/90">

@@ -64,6 +64,8 @@ export default function SuperAdminDashboard() {
     score_9: 9,
     score_10: 10,
     errorPenaltyMultiplier: 1,
+    memorizationPageBonus: 10,
+    revisionPageBonus: 5,
   });
   const [settingsStatus, setSettingsStatus] = useState("");
 
@@ -143,6 +145,8 @@ export default function SuperAdminDashboard() {
             score_9: s.score_9 ?? 9,
             score_10: s.score_10 ?? 10,
             errorPenaltyMultiplier: s.errorPenaltyMultiplier ?? 1,
+            memorizationPageBonus: s.memorizationPageBonus ?? 10,
+            revisionPageBonus: s.revisionPageBonus ?? 5,
           });
         }
       } catch (error) {
@@ -289,6 +293,11 @@ export default function SuperAdminDashboard() {
 
     setEditingStudent({
       ...student,
+      firstName: student.firstName || "",
+      lastName: student.lastName || "",
+      email: student.email || "",
+      phone: student.phone || "",
+      password: "",
       teacherId: student.teacherId || "",
       groupId: currentGroup?._id || "",
       parentId: currentParent?._id || "",
@@ -666,10 +675,18 @@ export default function SuperAdminDashboard() {
 
     try {
       const payload = {
+        firstName: editingStudent.firstName,
+        lastName: editingStudent.lastName,
+        email: editingStudent.email,
+        phone: editingStudent.phone,
         teacherId: editingStudent.teacherId || undefined,
         groupId: editingStudent.groupId ?? "",
         parentId: editingStudent.parentId ?? "",
       };
+
+      if (editingStudent.password) {
+        payload.password = editingStudent.password;
+      }
 
       const response = await api.put(
         `/admin/users/students/${editingStudent._id}`,
@@ -717,11 +734,14 @@ export default function SuperAdminDashboard() {
 
     try {
       const payload = {};
-      if (editingTeacher.firstName)
+      if (editingTeacher.firstName !== undefined)
         payload.firstName = editingTeacher.firstName;
-      if (editingTeacher.lastName) payload.lastName = editingTeacher.lastName;
-      if (editingTeacher.email) payload.email = editingTeacher.email;
-      if (editingTeacher.phone) payload.phone = editingTeacher.phone;
+      if (editingTeacher.lastName !== undefined)
+        payload.lastName = editingTeacher.lastName;
+      if (editingTeacher.email !== undefined)
+        payload.email = editingTeacher.email;
+      if (editingTeacher.phone !== undefined)
+        payload.phone = editingTeacher.phone;
       if (editingTeacher.password) payload.password = editingTeacher.password;
 
       const response = await api.put(
@@ -785,10 +805,14 @@ export default function SuperAdminDashboard() {
 
     try {
       const payload = {};
-      if (editingParent.firstName) payload.firstName = editingParent.firstName;
-      if (editingParent.lastName) payload.lastName = editingParent.lastName;
-      if (editingParent.email) payload.email = editingParent.email;
-      if (editingParent.phone) payload.phone = editingParent.phone;
+      if (editingParent.firstName !== undefined)
+        payload.firstName = editingParent.firstName;
+      if (editingParent.lastName !== undefined)
+        payload.lastName = editingParent.lastName;
+      if (editingParent.email !== undefined)
+        payload.email = editingParent.email;
+      if (editingParent.phone !== undefined)
+        payload.phone = editingParent.phone;
       if (editingParent.password) payload.password = editingParent.password;
       if (editingParent.childrenIds)
         payload.childrenIds = editingParent.childrenIds;
@@ -1923,6 +1947,80 @@ export default function SuperAdminDashboard() {
                   </div>
 
                   <form onSubmit={handleUpdateStudent} className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الاسم الأول
+                        <input
+                          value={editingStudent.firstName || ""}
+                          onChange={(e) =>
+                            handleEditingStudentChange(
+                              "firstName",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="الاسم الأول"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الاسم الأخير
+                        <input
+                          value={editingStudent.lastName || ""}
+                          onChange={(e) =>
+                            handleEditingStudentChange(
+                              "lastName",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="الاسم الأخير"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        البريد الإلكتروني
+                        <input
+                          type="email"
+                          value={editingStudent.email || ""}
+                          onChange={(e) =>
+                            handleEditingStudentChange("email", e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="student@example.com"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        الهاتف
+                        <input
+                          type="tel"
+                          value={editingStudent.phone || ""}
+                          onChange={(e) =>
+                            handleEditingStudentChange("phone", e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="مثال: +966512345678"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-1">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        كلمة المرور الجديدة (اتركها فارغة للإبقاء على الحالية)
+                        <input
+                          type="password"
+                          value={editingStudent.password || ""}
+                          onChange={(e) =>
+                            handleEditingStudentChange(
+                              "password",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                          placeholder="كلمة مرور جديدة"
+                        />
+                      </label>
+                    </div>
+
                     <label className="space-y-2 text-sm text-slate-700">
                       المعلم
                       <select
@@ -2104,6 +2202,44 @@ export default function SuperAdminDashboard() {
                           onChange={(e) =>
                             handleSettingsChange(
                               "unexcusedAbsencePoints",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">
+                      بونص صفحات الحفظ والمراجعة
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2 max-w-xs">
+                      <label className="space-y-2 text-sm text-slate-700">
+                        نقاط كل صفحة حفظ
+                        <input
+                          type="number"
+                          min="0"
+                          value={settings.memorizationPageBonus}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "memorizationPageBonus",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-700">
+                        نقاط كل صفحة مراجعة
+                        <input
+                          type="number"
+                          min="0"
+                          value={settings.revisionPageBonus}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "revisionPageBonus",
                               e.target.value,
                             )
                           }

@@ -38,6 +38,14 @@ const EvaluationSchema = new Schema({
     type: Number,
     default: 0,
   },
+  memorizationPagesCount: {
+    type: Number,
+    default: 0,
+  },
+  revisionPagesCount: {
+    type: Number,
+    default: 0,
+  },
   grade: {
     type: Schema.Types.Mixed,
     validate: {

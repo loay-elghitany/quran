@@ -150,6 +150,19 @@ const createEvaluation = async (req, res, next) => {
       notes,
     } = req.body;
 
+    const memorizationPagesCount =
+      parseInt(
+        req.body.memorizationPagesCount ||
+          req.body.memorization_pages_count ||
+          0,
+        10,
+      ) || 0;
+    const revisionPagesCount =
+      parseInt(
+        req.body.revisionPagesCount || req.body.revision_pages_count || 0,
+        10,
+      ) || 0;
+
     if (!studentId || !groupId) {
       return res.status(400).json({ message: "يجب تحديد الطالب والحلقة." });
     }
@@ -174,35 +187,39 @@ const createEvaluation = async (req, res, next) => {
     const isExcusedAbsence = attendanceStatus === "غائب بعذر";
     const isPresent = attendanceStatus === "حاضر";
 
-    if (isUnexcusedAbsence || isExcusedAbsence) {
+    if (isUnexcusedAbsence) {
+      // Unexcused absence: no earned points for the evaluation, student penalty applied later
+      points = 0;
+    } else if (isExcusedAbsence) {
+      // Excused absence: evaluation yields 0 points
       points = 0;
     } else if (isPresent) {
-      const scoreKey =
-        typeof normalizedGrade === "number" &&
-        Number.isInteger(normalizedGrade) &&
-        normalizedGrade >= 1 &&
-        normalizedGrade <= 10
-          ? `score_${normalizedGrade}`
-          : null;
+      // New strict scoring rules
+      const parsedMemPages = Number(memorizationPagesCount) || 0;
+      const parsedRevPages = Number(revisionPagesCount) || 0;
 
-      const fallbackGradeScores = {
-        ممتاز: settings.score_10 ?? 10,
-        "جيد جداً": settings.score_8 ?? 8,
-        جيد: settings.score_5 ?? 5,
-        مقبول: settings.score_2 ?? 2,
-      };
+      const gradeNum = Number(normalizedGrade);
+      const gradePoints = !Number.isNaN(gradeNum) ? gradeNum * 3 : 0;
 
-      const gradePoints =
-        scoreKey && settings[scoreKey] !== undefined
-          ? settings[scoreKey]
-          : fallbackGradeScores[grade] || 0;
+      const attendancePoints = 20;
+
+      const memBonus =
+        (settings.memorizationPageBonus !== undefined
+          ? Number(settings.memorizationPageBonus)
+          : 10) * parsedMemPages;
+
+      const revBonus =
+        (settings.revisionPageBonus !== undefined
+          ? Number(settings.revisionPageBonus)
+          : 5) * parsedRevPages;
+
+      const mistakesPenalty = Number(mistakes || 0) * 1;
 
       points =
-        (gradePoints || 0) +
-        (settings.attendancePoints || 0) -
-        (mistakes || 0) * (settings.errorPenaltyMultiplier || 1);
+        gradePoints + attendancePoints + memBonus + revBonus - mistakesPenalty;
     }
-    const earnedPoints = Math.max(0, points);
+
+    const earnedPoints = Math.max(0, Math.round(points));
 
     const evaluation = new Evaluation({
       teacherId: req.user._id,
@@ -218,6 +235,8 @@ const createEvaluation = async (req, res, next) => {
         from: revisionFrom,
         to: revisionTo,
       },
+      memorizationPagesCount: Number(memorizationPagesCount) || 0,
+      revisionPagesCount: Number(revisionPagesCount) || 0,
       mistakes,
       grade: isPresent ? normalizedGrade : undefined,
       notes,
@@ -226,37 +245,38 @@ const createEvaluation = async (req, res, next) => {
 
     const savedEvaluation = await evaluation.save();
 
-    const student = await User.findById(studentId);
-    if (student) {
-      if (isUnexcusedAbsence) {
-        student.points = (student.points || 0) - 15;
-      }
+    if (isUnexcusedAbsence) {
+      await User.findByIdAndUpdate(studentId, {
+        $inc: { points: -15 },
+      });
+    }
 
-      if (isPresent) {
+    if (isPresent) {
+      await User.findByIdAndUpdate(studentId, {
+        $inc: { points: earnedPoints },
+      });
+
+      const student = await User.findById(studentId);
+      if (student) {
         const previousStreak = student.evaluationStreak || {
           currentGrade: "",
           count: 0,
           maxStreak: 0,
         };
-        let currentCount = 0;
+        const currentCount =
+          grade === "يحتاج مراجعة"
+            ? 0
+            : previousStreak.currentGrade === grade
+              ? previousStreak.count + 1
+              : 1;
 
-        if (grade === "يحتاج مراجعة") {
-          currentCount = 0;
-        } else if (previousStreak.currentGrade === grade) {
-          currentCount = previousStreak.count + 1;
-        } else {
-          currentCount = 1;
-        }
-
-        const nextMax = Math.max(previousStreak.maxStreak || 0, currentCount);
         student.evaluationStreak = {
           currentGrade: grade,
           count: currentCount,
-          maxStreak: nextMax,
+          maxStreak: Math.max(previousStreak.maxStreak || 0, currentCount),
         };
+        await student.save();
       }
-
-      await student.save();
     }
 
     res.status(201).json({
@@ -359,6 +379,45 @@ const getEvaluationHistory = async (req, res) => {
   }
 };
 
+const deleteEvaluation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const evaluation = await Evaluation.findById(id);
+    if (!evaluation) {
+      return res.status(404).json({ message: "التقييم غير موجود." });
+    }
+
+    // Ensure the requesting teacher created this evaluation
+    if (
+      evaluation.teacherId &&
+      evaluation.teacherId.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({ message: "غير مصرح بحذف هذا التقييم." });
+    }
+
+    const student = await User.findById(evaluation.studentId);
+    if (student) {
+      if (evaluation.attendance === "غائب بدون عذر") {
+        student.points = (student.points || 0) + 15;
+      } else if (evaluation.attendance === "حاضر") {
+        student.points = (student.points || 0) - (evaluation.earnedPoints || 0);
+      }
+
+      await student.save();
+    }
+
+    await evaluation.deleteOne();
+
+    res.json({ message: "تم حذف التقييم وتحديث رصيد نقاط الطالب بنجاح." });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
+  }
+};
+
 const updateLeaveRequestStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -400,6 +459,7 @@ module.exports = {
   awardBadge,
   createAssignment,
   createEvaluation,
+  deleteEvaluation,
   getEvaluationHistory,
   getLeaveRequests,
   updateLeaveRequestStatus,

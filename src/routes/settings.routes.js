@@ -29,6 +29,8 @@ router.get("/gamification", async (req, res, next) => {
         score_9: settings.score_9 ?? 9,
         score_10: settings.score_10 ?? 10,
         errorPenaltyMultiplier: settings.errorPenaltyMultiplier ?? 1,
+        memorizationPageBonus: settings.memorizationPageBonus ?? 10,
+        revisionPageBonus: settings.revisionPageBonus ?? 5,
       },
     });
   } catch (error) {

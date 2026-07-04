@@ -61,44 +61,24 @@ export default function PointsSystemGuide() {
           <ul className="space-y-1">
             <li>
               • حاضر:{" "}
-              <span className="font-semibold text-quran-700">
-                +{s.attendancePoints} نقاط
-              </span>
-            </li>
-            <li>
-              • غائب بعذر:{" "}
-              <span className="font-semibold text-quran-700">
-                {s.excusedAbsencePoints > 0
-                  ? `+${s.excusedAbsencePoints} نقاط`
-                  : `${s.excusedAbsencePoints} نقطة`}
-              </span>
+              <span className="font-semibold text-quran-700">+20 نقطة</span>
             </li>
             <li className="text-red-600">
-              • غائب بدون عذر:{" "}
-              <span className="font-semibold">
-                {s.unexcusedAbsencePoints > 0
-                  ? `+${s.unexcusedAbsencePoints}`
-                  : s.unexcusedAbsencePoints}{" "}
-                نقطة
-                {s.unexcusedAbsencePoints < 0 ? " (خصم)" : ""}
-              </span>
+              • غائب بدون عذر: <span className="font-semibold">-15 نقطة</span>
+            </li>
+            <li>
+              • غائب بعذر: <span className="font-semibold">0 نقطة</span>
             </li>
           </ul>
         </div>
         <div className="rounded-3xl bg-quran-50 p-4">
           <p className="font-semibold text-slate-900 mb-2">التقييم</p>
           <ul className="space-y-1">
-            {Array.from({ length: 10 }, (_, index) => {
-              const scoreKey = `score_${index + 1}`;
-              return (
-                <li key={scoreKey}>
-                  • درجة {index + 1} من 10:{" "}
-                  <span className="font-semibold text-quran-700">
-                    +{s[scoreKey]} نقاط
-                  </span>
-                </li>
-              );
-            })}
+            <li>
+              • الدرجة الممنوحة تضرب في{" "}
+              <span className="font-semibold text-quran-700">3</span> للحصول على
+              نقاط التقييم.
+            </li>
           </ul>
         </div>
         <div className="rounded-3xl bg-quran-50 p-4">
@@ -110,6 +90,25 @@ export default function PointsSystemGuide() {
             </span>{" "}
             لكل خطأ أو تنبيه.
           </p>
+        </div>
+        <div className="rounded-3xl bg-quran-50 p-4">
+          <p className="font-semibold text-slate-900 mb-2">
+            بونص صفحات الحفظ والمراجعة
+          </p>
+          <ul className="space-y-1">
+            <li>
+              • كل صفحة حفظ جديدة تمنح{" "}
+              <span className="font-semibold text-quran-700">
+                +{s.memorizationPageBonus ?? 10} نقاط
+              </span>
+            </li>
+            <li>
+              • كل صفحة مراجعة تمنح{" "}
+              <span className="font-semibold text-quran-700">
+                +{s.revisionPageBonus ?? 5} نقاط
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>

@@ -10,25 +10,30 @@ const groupIdParamsSchema = Joi.object({
 });
 
 const studentUpdateSchema = Joi.object({
+  firstName: Joi.string().allow("").optional(),
+  lastName: Joi.string().allow("").optional(),
+  email: Joi.string().email().allow("").optional(),
+  phone: Joi.string().allow("").optional(),
+  password: Joi.string().min(8).allow("").optional(),
   teacherId: objectIdSchema.optional(),
   groupId: objectIdSchema.optional().allow(""),
   parentId: objectIdSchema.optional().allow(""),
 });
 
 const teacherUpdateSchema = Joi.object({
-  firstName: Joi.string().optional(),
-  lastName: Joi.string().optional(),
-  email: Joi.string().email().optional(),
-  phone: Joi.string().optional(),
-  password: Joi.string().min(8).optional(),
+  firstName: Joi.string().allow("").optional(),
+  lastName: Joi.string().allow("").optional(),
+  email: Joi.string().email().allow("").optional(),
+  phone: Joi.string().allow("").optional(),
+  password: Joi.string().min(8).allow("").optional(),
 });
 
 const parentUpdateSchema = Joi.object({
-  firstName: Joi.string().optional(),
-  lastName: Joi.string().optional(),
-  email: Joi.string().email().optional(),
-  phone: Joi.string().optional(),
-  password: Joi.string().min(8).optional(),
+  firstName: Joi.string().allow("").optional(),
+  lastName: Joi.string().allow("").optional(),
+  email: Joi.string().email().allow("").optional(),
+  phone: Joi.string().allow("").optional(),
+  password: Joi.string().min(8).allow("").optional(),
   childrenIds: Joi.array().items(objectIdSchema).optional(),
 });
 

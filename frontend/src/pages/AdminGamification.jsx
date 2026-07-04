@@ -60,6 +60,8 @@ export default function AdminGamification() {
     score_9: 9,
     score_10: 10,
     errorPenaltyMultiplier: 1,
+    memorizationPageBonus: 10,
+    revisionPageBonus: 5,
   });
   const [settingsMessage, setSettingsMessage] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -205,6 +207,8 @@ export default function AdminGamification() {
         score_9: s.score_9 ?? 9,
         score_10: s.score_10 ?? 10,
         errorPenaltyMultiplier: s.errorPenaltyMultiplier ?? 1,
+        memorizationPageBonus: s.memorizationPageBonus ?? 10,
+        revisionPageBonus: s.revisionPageBonus ?? 5,
       });
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -692,6 +696,44 @@ export default function AdminGamification() {
                     </label>
                   </div>
 
+                  <div className="rounded-3xl bg-quran-50 p-5">
+                    <p className="font-semibold text-slate-900 mb-3">
+                      بونص صفحات الحفظ والمراجعة
+                    </p>
+                    <div className="grid gap-3">
+                      <label className="block text-sm text-slate-700">
+                        نقاط كل صفحة حفظ
+                        <input
+                          type="number"
+                          value={settingsForm.memorizationPageBonus}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "memorizationPageBonus",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                          min={0}
+                        />
+                      </label>
+                      <label className="block text-sm text-slate-700">
+                        نقاط كل صفحة مراجعة
+                        <input
+                          type="number"
+                          value={settingsForm.revisionPageBonus}
+                          onChange={(e) =>
+                            handleSettingsFieldChange(
+                              "revisionPageBonus",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                          min={0}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
                   <button
                     onClick={handleUpdateSettings}
                     className="w-full rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700 transition"
@@ -768,6 +810,25 @@ export default function AdminGamification() {
                     </span>{" "}
                     لكل خطأ أو تنبيه.
                   </p>
+                </div>
+                <div className="rounded-3xl bg-quran-50 p-4">
+                  <p className="font-semibold text-slate-900 mb-2">
+                    بونص صفحات الحفظ والمراجعة
+                  </p>
+                  <ul className="space-y-1">
+                    <li>
+                      • كل صفحة حفظ جديدة:{" "}
+                      <span className="font-semibold text-quran-700">
+                        +{settingsForm.memorizationPageBonus} نقاط
+                      </span>
+                    </li>
+                    <li>
+                      • كل صفحة مراجعة:{" "}
+                      <span className="font-semibold text-quran-700">
+                        +{settingsForm.revisionPageBonus} نقاط
+                      </span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>

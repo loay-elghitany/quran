@@ -193,13 +193,8 @@ const getStudentRewards = async (req, res) => {
         .json({ success: false, message: "الطالب غير موجود." });
     }
 
-    const aggregatePoints = await Evaluation.aggregate([
-      { $match: { studentId } },
-      { $group: { _id: null, totalPoints: { $sum: "$earnedPoints" } } },
-    ]);
-    const evaluationPoints = aggregatePoints[0]?.totalPoints || 0;
     const badgePoints = student.points || 0;
-    const totalPoints = evaluationPoints + badgePoints;
+    const totalPoints = badgePoints;
 
     const reservedAggregation = await Redemption.aggregate([
       {
@@ -266,13 +261,8 @@ const redeemReward = async (req, res) => {
         .json({ success: false, message: "الطالب غير موجود." });
     }
 
-    const aggregatePoints = await Evaluation.aggregate([
-      { $match: { studentId } },
-      { $group: { _id: null, totalPoints: { $sum: "$earnedPoints" } } },
-    ]);
-    const evaluationPoints = aggregatePoints[0]?.totalPoints || 0;
     const badgePoints = student.points || 0;
-    const totalPoints = evaluationPoints + badgePoints;
+    const totalPoints = badgePoints;
 
     const reservedAggregation = await Redemption.aggregate([
       {
