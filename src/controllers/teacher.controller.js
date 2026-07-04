@@ -151,16 +151,14 @@ const createEvaluation = async (req, res, next) => {
     } = req.body;
 
     const memorizationPagesCount =
-      parseInt(
+      parseFloat(
         req.body.memorizationPagesCount ||
           req.body.memorization_pages_count ||
           0,
-        10,
       ) || 0;
     const revisionPagesCount =
-      parseInt(
+      parseFloat(
         req.body.revisionPagesCount || req.body.revision_pages_count || 0,
-        10,
       ) || 0;
 
     if (!studentId || !groupId) {

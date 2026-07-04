@@ -4,6 +4,13 @@ import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
 import AnnouncementsBanner from "../components/AnnouncementsBanner";
 
+const parseLocalizedFloat = (value) => {
+  if (!value) return "";
+  return value
+    .replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 1632)
+    .replace(/[۰-۹]/g, (d) => d.charCodeAt(0) - 1776);
+};
+
 const attendanceOptions = ["حاضر", "غائب بعذر", "غائب بدون عذر"];
 const gradeOptions = ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"];
 
@@ -927,30 +934,46 @@ export default function TeacherDashboard() {
                   <label className="block text-sm text-slate-700">
                     عدد صفحات الحفظ الجديد
                     <input
-                      type="number"
-                      min={0}
+                      type="text"
+                      placeholder="0"
                       value={evaluation.memorizationPagesCount}
-                      onChange={(e) =>
-                        handleEvaluationChange(
-                          "memorizationPagesCount",
-                          Number(e.target.value),
-                        )
-                      }
+                      onChange={(e) => {
+                        const sanitizedValue = parseLocalizedFloat(
+                          e.target.value,
+                        );
+                        if (
+                          sanitizedValue === "" ||
+                          /^[0-9]*\.?[0-9]*$/.test(sanitizedValue)
+                        ) {
+                          handleEvaluationChange(
+                            "memorizationPagesCount",
+                            sanitizedValue,
+                          );
+                        }
+                      }}
                       className={evaluationFieldClass}
                     />
                   </label>
                   <label className="block text-sm text-slate-700">
                     عدد صفحات المراجعة
                     <input
-                      type="number"
-                      min={0}
+                      type="text"
+                      placeholder="0"
                       value={evaluation.revisionPagesCount}
-                      onChange={(e) =>
-                        handleEvaluationChange(
-                          "revisionPagesCount",
-                          Number(e.target.value),
-                        )
-                      }
+                      onChange={(e) => {
+                        const sanitizedValue = parseLocalizedFloat(
+                          e.target.value,
+                        );
+                        if (
+                          sanitizedValue === "" ||
+                          /^[0-9]*\.?[0-9]*$/.test(sanitizedValue)
+                        ) {
+                          handleEvaluationChange(
+                            "revisionPagesCount",
+                            sanitizedValue,
+                          );
+                        }
+                      }}
                       className={evaluationFieldClass}
                     />
                   </label>
