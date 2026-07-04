@@ -65,6 +65,11 @@ export default function AdminGamification() {
   });
   const [settingsMessage, setSettingsMessage] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [globalPointsAmount, setGlobalPointsAmount] = useState("");
+  const [targetedPointsAmount, setTargetedPointsAmount] = useState("");
+  const [selectedPointsStudentId, setSelectedPointsStudentId] = useState("");
+  const [studentsList, setStudentsList] = useState([]);
+  const [grantStatusMessage, setGrantStatusMessage] = useState("");
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -74,6 +79,7 @@ export default function AdminGamification() {
     loadBadges();
     loadChallenges();
     loadGroups();
+    loadStudentsList();
     loadMysteryBox();
     loadSettings();
   }, []);
@@ -102,6 +108,15 @@ export default function AdminGamification() {
       setGroups(response.data.groups || []);
     } catch (error) {
       console.error("Failed to load groups:", error);
+    }
+  };
+
+  const loadStudentsList = async () => {
+    try {
+      const response = await api.get("/admin/users?role=Student");
+      setStudentsList(response.data.users || []);
+    } catch (error) {
+      console.error("Failed to load students list:", error);
     }
   };
 
@@ -237,6 +252,72 @@ export default function AdminGamification() {
     setSettingsForm((prev) => ({ ...prev, [field]: Number(value) }));
   };
 
+  const handleGrantPointsToAll = async () => {
+    const points = Number(globalPointsAmount);
+    if (!Number.isInteger(points) || points <= 0) {
+      setGrantStatusMessage("يرجى إدخال عدد صحيح موجب للنقاط.");
+      setTimeout(() => setGrantStatusMessage(""), 3000);
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "هل أنت متأكد من منح هذه النقاط لجميع الطلاب المسجلين بالموقع؟",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await api.post("/admin/grant-points-all", { points });
+      setGrantStatusMessage(`تم منح ${points} نقطة لجميع الطلاب بنجاح.`);
+      setGlobalPointsAmount("");
+      setTimeout(() => setGrantStatusMessage(""), 4000);
+    } catch (error) {
+      setGrantStatusMessage(
+        getApiErrorMessage(error, "فشل منح النقاط لجميع الطلاب."),
+      );
+      setTimeout(() => setGrantStatusMessage(""), 4000);
+    }
+  };
+
+  const handleGrantPointsToStudent = async (e) => {
+    e.preventDefault();
+
+    const points = Number(targetedPointsAmount);
+    if (!selectedPointsStudentId) {
+      setGrantStatusMessage("يرجى اختيار طالب أولاً.");
+      setTimeout(() => setGrantStatusMessage(""), 3000);
+      return;
+    }
+
+    if (!Number.isInteger(points) || points <= 0) {
+      setGrantStatusMessage("يرجى إدخال عدد صحيح موجب للنقاط.");
+      setTimeout(() => setGrantStatusMessage(""), 3000);
+      return;
+    }
+
+    if (!window.confirm("هل أنت متأكد من منح هذه النقاط للطالب المختار؟")) {
+      return;
+    }
+
+    try {
+      await api.post("/admin/grant-points-student", {
+        studentId: selectedPointsStudentId,
+        points,
+      });
+      setGrantStatusMessage(`تم منح ${points} نقطة للطالب المختار بنجاح.`);
+      setSelectedPointsStudentId("");
+      setTargetedPointsAmount("");
+      setTimeout(() => setGrantStatusMessage(""), 4000);
+    } catch (error) {
+      setGrantStatusMessage(
+        getApiErrorMessage(error, "فشل منح النقاط للطالب المختار."),
+      );
+      setTimeout(() => setGrantStatusMessage(""), 4000);
+    }
+  };
+
   // Mystery Box Handlers
   const handleAddReward = () => {
     if (!newReward.trim()) return;
@@ -292,7 +373,13 @@ export default function AdminGamification() {
 
         {/* Tab Navigation */}
         <div className="flex flex-col gap-4 mb-8 sm:flex-row">
-          {["badges", "challenges", "settings", "mysteryBox"].map((tab) => (
+          {[
+            "badges",
+            "challenges",
+            "settings",
+            "mysteryBox",
+            "grantPoints",
+          ].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -308,7 +395,9 @@ export default function AdminGamification() {
                   ? "التحديات"
                   : tab === "settings"
                     ? "نظام النقاط"
-                    : "صندوق الأسرار"}
+                    : tab === "mysteryBox"
+                      ? "صندوق الأسرار"
+                      : "منح النقاط المباشرة"}
             </button>
           ))}
         </div>
@@ -829,6 +918,96 @@ export default function AdminGamification() {
                       </span>
                     </li>
                   </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Grant Points Tab */}
+        {activeTab === "grantPoints" && (
+          <div className="mx-auto max-w-3xl">
+            <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+              <div className="mb-6 text-center">
+                <h2 className="text-2xl font-semibold text-slate-900">
+                  🏆 نظام المنح والمكافآت المباشرة للطلاب
+                </h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  منحه نقاط مباشرة لجميع الطلاب أو لطالب محدد من خلال لوحة
+                  الإدارة.
+                </p>
+              </div>
+
+              {grantStatusMessage && (
+                <div className="mb-6 rounded-3xl border border-quran-200 bg-quran-50 p-4 text-sm text-quran-800">
+                  {grantStatusMessage}
+                </div>
+              )}
+
+              <div className="space-y-6">
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                  <h3 className="text-xl font-semibold text-slate-900 mb-4">
+                    منح جماعي لجميع الطلاب
+                  </h3>
+                  <label className="block text-sm text-slate-700">
+                    عدد النقاط
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={globalPointsAmount}
+                      onChange={(e) => setGlobalPointsAmount(e.target.value)}
+                      className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                      placeholder="مثال: 25"
+                    />
+                  </label>
+                  <button
+                    onClick={handleGrantPointsToAll}
+                    className="mt-4 w-full rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700 transition"
+                  >
+                    منح النقاط لجميع الطلاب
+                  </button>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                  <h3 className="text-xl font-semibold text-slate-900 mb-4">
+                    منح خاص لطالب محدد
+                  </h3>
+                  <label className="block text-sm text-slate-700">
+                    اختيار الطالب
+                    <select
+                      value={selectedPointsStudentId}
+                      onChange={(e) =>
+                        setSelectedPointsStudentId(e.target.value)
+                      }
+                      className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                    >
+                      <option value="">-- اختر طالبًا --</option>
+                      {studentsList.map((student) => (
+                        <option key={student._id} value={student._id}>
+                          {student.firstName} {student.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block mt-4 text-sm text-slate-700">
+                    عدد النقاط
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={targetedPointsAmount}
+                      onChange={(e) => setTargetedPointsAmount(e.target.value)}
+                      className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                      placeholder="مثال: 40"
+                    />
+                  </label>
+                  <button
+                    onClick={handleGrantPointsToStudent}
+                    className="mt-4 w-full rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700 transition"
+                  >
+                    منح النقاط للطالب المختار
+                  </button>
                 </div>
               </div>
             </div>

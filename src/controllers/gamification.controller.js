@@ -2,6 +2,7 @@
 const Challenge = require("../models/challenge.model");
 const StoreConfig = require("../models/storeConfig.model");
 const Group = require("../models/group.model");
+const User = require("../models/user.model");
 
 // ============ BADGE OPERATIONS ============
 
@@ -27,12 +28,10 @@ const createBadge = async (req, res) => {
     res.status(201).json({ message: "تم إنشاء الوسام بنجاح.", badge: saved });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -42,12 +41,10 @@ const getBadges = async (req, res) => {
     res.json({ badges });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -73,12 +70,10 @@ const updateBadge = async (req, res) => {
     res.json({ message: "تم تحديث الوسام بنجاح.", badge: updated });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -96,12 +91,10 @@ const deleteBadge = async (req, res) => {
     res.json({ message: "تم حذف الوسام بنجاح." });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -113,12 +106,10 @@ const createChallenge = async (req, res) => {
       req.body;
 
     if (!title || !groupId || !targetPoints) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "العنوان والمجموعة والحد الأقصى للنقاط مطلوبون.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "العنوان والمجموعة والحد الأقصى للنقاط مطلوبون.",
+      });
     }
 
     const group = await Group.findById(groupId);
@@ -142,12 +133,10 @@ const createChallenge = async (req, res) => {
       .json({ message: "تم إنشاء التحدي بنجاح.", challenge: saved });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -159,12 +148,10 @@ const getChallenges = async (req, res) => {
     res.json({ challenges });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -177,12 +164,10 @@ const getChallengesByGroup = async (req, res) => {
     res.json({ challenges });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -223,12 +208,10 @@ const updateChallenge = async (req, res) => {
     res.json({ message: "تم تحديث التحدي بنجاح.", challenge: updated });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -246,12 +229,88 @@ const deleteChallenge = async (req, res) => {
     res.json({ message: "تم حذف التحدي بنجاح." });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
+  }
+};
+
+// ============ DIRECT STUDENT REWARDS ============
+
+const grantPointsToAll = async (req, res) => {
+  try {
+    const { points } = req.body;
+    const parsedPoints = Number(points);
+
+    if (!Number.isInteger(parsedPoints) || parsedPoints <= 0) {
+      return res.status(400).json({
         success: false,
-        message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+        message: "يرجى إدخال عدد صحيح موجب للنقاط.",
       });
+    }
+
+    await User.updateMany(
+      { role: "Student" },
+      { $inc: { points: parsedPoints } },
+    );
+
+    res.json({
+      success: true,
+      message: `تم منح ${parsedPoints} نقطة لجميع الطلاب بنجاح.`,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
+  }
+};
+
+const grantPointsToStudent = async (req, res) => {
+  try {
+    const { studentId, points } = req.body;
+    const parsedPoints = Number(points);
+
+    if (!studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى اختيار طالب أولاً.",
+      });
+    }
+
+    if (!Number.isInteger(parsedPoints) || parsedPoints <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى إدخال عدد صحيح موجب للنقاط.",
+      });
+    }
+
+    const updatedStudent = await User.findByIdAndUpdate(
+      studentId,
+      { $inc: { points: parsedPoints } },
+      { new: true },
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({
+        success: false,
+        message: "الطالب غير موجود.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `تم منح ${parsedPoints} نقطة للطالب بنجاح.`,
+      student: updatedStudent,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
   }
 };
 
@@ -327,6 +386,8 @@ module.exports = {
   getChallengesByGroup,
   updateChallenge,
   deleteChallenge,
+  grantPointsToAll,
+  grantPointsToStudent,
   getOrCreateMysteryBoxConfig,
   updateMysteryBoxConfig,
 };

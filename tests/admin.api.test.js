@@ -123,6 +123,76 @@ describe("POST /api/admin/users", () => {
   });
 });
 
+describe("POST /api/admin/grant-points-all", () => {
+  it("should grant points to all students", async () => {
+    const teacher = new User({
+      firstName: "Reward",
+      lastName: "Teacher",
+      email: "rewardteacher@example.com",
+      password: "teacherpass123",
+      role: "Teacher",
+    });
+    await teacher.save();
+
+    const student = new User({
+      firstName: "Reward",
+      lastName: "Student",
+      email: "rewardstudent@example.com",
+      password: "studentpass123",
+      role: "Student",
+      teacherId: teacher._id,
+      points: 0,
+    });
+    await student.save();
+
+    const response = await request(app)
+      .post("/api/admin/grant-points-all")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ points: 25 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    const updatedStudent = await User.findById(student._id);
+    expect(updatedStudent.points).toBe(25);
+  });
+});
+
+describe("POST /api/admin/grant-points-student", () => {
+  it("should grant points to a specific student", async () => {
+    const teacher = new User({
+      firstName: "Target",
+      lastName: "Teacher",
+      email: "targetteacher@example.com",
+      password: "teacherpass123",
+      role: "Teacher",
+    });
+    await teacher.save();
+
+    const student = new User({
+      firstName: "Target",
+      lastName: "Student",
+      email: "targetstudent@example.com",
+      password: "studentpass123",
+      role: "Student",
+      teacherId: teacher._id,
+      points: 0,
+    });
+    await student.save();
+
+    const response = await request(app)
+      .post("/api/admin/grant-points-student")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ studentId: student._id.toString(), points: 40 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    const updatedStudent = await User.findById(student._id);
+    expect(updatedStudent.points).toBe(40);
+  });
+});
+
 describe("POST /api/admin/groups", () => {
   it("should create a group successfully as SuperAdmin", async () => {
     const teacher = new User({

@@ -131,6 +131,17 @@ export default function Navbar({ role }) {
                   </button>
                   <button
                     type="button"
+                    onClick={() => navigateTo("/admin/gamification")}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                      isActive("/admin/gamification")
+                        ? "bg-quran-800"
+                        : "hover:bg-quran-800"
+                    }`}
+                  >
+                    إدارة النقاط والألعاب
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => navigateTo("/admin/rewards")}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                       isActive("/admin/rewards")
@@ -138,7 +149,7 @@ export default function Navbar({ role }) {
                         : "hover:bg-quran-800"
                     }`}
                   >
-                    إدارة المكافآت
+                    متجر الجوائز
                   </button>
                   <button
                     type="button"
