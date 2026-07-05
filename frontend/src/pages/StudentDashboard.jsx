@@ -863,12 +863,20 @@ export default function StudentDashboard() {
                         {item.newMemorization?.from || "-"} إلى{" "}
                         {item.newMemorization?.to || "-"}
                       </p>
+                      <p className="mt-2 text-xs text-quran-600 font-semibold">
+                        📖 عدد صفحات الحفظ: {item.memorizationPagesCount || 0}{" "}
+                        صفحة
+                      </p>
                     </div>
                     <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
                       <p className="font-semibold text-slate-800">المراجعة</p>
                       <p className="mt-2">
                         {item.revision?.from || "-"} إلى{" "}
                         {item.revision?.to || "-"}
+                      </p>
+                      <p className="mt-2 text-xs text-quran-600 font-semibold">
+                        🔄 عدد صفحات المراجعة: {item.revisionPagesCount || 0}{" "}
+                        صفحة
                       </p>
                     </div>
                   </div>
