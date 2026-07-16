@@ -131,15 +131,10 @@ const getStudentChallenges = async (req, res) => {
 
     const group = await Group.findOne({ studentIds: student._id });
     if (!group) {
-      return res.json({ challenges: [], totalPoints: 0 });
+      return res.json({ challenges: [], totalPoints: student.points || 0 });
     }
 
-    const evaluationAggregation = await Evaluation.aggregate([
-      { $match: { studentId: student._id } },
-      { $group: { _id: null, totalPoints: { $sum: "$earnedPoints" } } },
-    ]);
-    const evaluationPoints = evaluationAggregation[0]?.totalPoints || 0;
-    const totalPoints = evaluationPoints + (student.points || 0);
+    const totalPoints = student.points || 0;
 
     const challenges = await Challenge.find({ groupId: group._id }).sort({
       deadline: 1,

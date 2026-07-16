@@ -69,6 +69,7 @@ export default function AdminGamification() {
   const [targetedPointsAmount, setTargetedPointsAmount] = useState("");
   const [selectedPointsStudentId, setSelectedPointsStudentId] = useState("");
   const [studentsList, setStudentsList] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
   const [grantStatusMessage, setGrantStatusMessage] = useState("");
 
   useEffect(() => {
@@ -112,11 +113,14 @@ export default function AdminGamification() {
   };
 
   const loadStudentsList = async () => {
+    setStudentsLoading(true);
     try {
       const response = await api.get("/admin/users?role=Student");
-      setStudentsList(response.data.users || []);
+      setStudentsList(response.data.users || response.data.students || []);
     } catch (error) {
       console.error("Failed to load students list:", error);
+    } finally {
+      setStudentsLoading(false);
     }
   };
 
@@ -272,6 +276,7 @@ export default function AdminGamification() {
       await api.post("/admin/grant-points-all", { points });
       setGrantStatusMessage(`تم منح ${points} نقطة لجميع الطلاب بنجاح.`);
       setGlobalPointsAmount("");
+      await loadStudentsList();
       setTimeout(() => setGrantStatusMessage(""), 4000);
     } catch (error) {
       setGrantStatusMessage(
@@ -309,6 +314,7 @@ export default function AdminGamification() {
       setGrantStatusMessage(`تم منح ${points} نقطة للطالب المختار بنجاح.`);
       setSelectedPointsStudentId("");
       setTargetedPointsAmount("");
+      await loadStudentsList();
       setTimeout(() => setGrantStatusMessage(""), 4000);
     } catch (error) {
       setGrantStatusMessage(
@@ -981,11 +987,17 @@ export default function AdminGamification() {
                         setSelectedPointsStudentId(e.target.value)
                       }
                       className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                      disabled={studentsLoading}
                     >
-                      <option value="">-- اختر طالبًا --</option>
+                      <option value="" disabled={studentsLoading}>
+                        {studentsLoading
+                          ? "جارٍ تحميل الطلاب..."
+                          : "-- اختر طالبًا --"}
+                      </option>
                       {studentsList.map((student) => (
                         <option key={student._id} value={student._id}>
-                          {student.firstName} {student.lastName}
+                          {student.firstName} {student.lastName} (النقاط
+                          الحالية: {student.points || 0})
                         </option>
                       ))}
                     </select>

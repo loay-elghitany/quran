@@ -91,7 +91,7 @@ const getUsers = async (req, res) => {
     }
 
     const users = await User.find(filter).select(
-      "_id firstName lastName role teacherId childrenIds email phone",
+      "_id firstName lastName role teacherId childrenIds email phone points",
     );
     res.json({ users });
   } catch (error) {
