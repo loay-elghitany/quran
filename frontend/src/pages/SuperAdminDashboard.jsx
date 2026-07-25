@@ -32,6 +32,7 @@ export default function SuperAdminDashboard() {
   const [studentUpdateStatus, setStudentUpdateStatus] = useState("");
   const [userStatus, setUserStatus] = useState("");
   const [isExportingCredentials, setIsExportingCredentials] = useState(false);
+  const [isExportingSummary, setIsExportingSummary] = useState(false);
   const [activeTab, setActiveTab] = useState("teachers");
 
   const tabs = [
@@ -317,6 +318,162 @@ export default function SuperAdminDashboard() {
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
+
+  const buildTeachersSummaryPdfHtml = (reportData) => {
+    const teachersHtml = reportData
+      .map((teacher) => {
+        const teacherName =
+          `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim();
+        const contact = teacher.email || teacher.phone || "";
+
+        const studentsRows = (teacher.students || [])
+          .map((student) => {
+            const evalCount = (student.evaluations || []).length;
+            const evaluationsHtml = (student.evaluations || [])
+              .map((ev) => {
+                const date = ev.date
+                  ? new Date(ev.date).toLocaleString("ar-SA")
+                  : "";
+                const grade = ev.grade ?? ev.score ?? "";
+                const mistakes = ev.mistakes || ev.errors || "";
+                const memorized = ev.memorizedPages || ev.memorized || "";
+                const reviewed = ev.reviewedPages || ev.reviewed || "";
+                return `
+                  <tr>
+                    <td>${escapeHtml(date)}</td>
+                    <td>${escapeHtml(String(grade))}</td>
+                    <td>${escapeHtml(String(mistakes))}</td>
+                    <td>${escapeHtml(String(memorized))}</td>
+                    <td>${escapeHtml(String(reviewed))}</td>
+                  </tr>
+                `;
+              })
+              .join("");
+
+            return `
+              <tr class="student-row">
+                <td>${escapeHtml(student.firstName || "")} ${escapeHtml(student.lastName || "")}</td>
+                <td style="text-align:center">${escapeHtml(String(student.points ?? "0"))}</td>
+                <td style="text-align:center">${escapeHtml(String(evalCount))}</td>
+                <td>
+                  <details>
+                    <summary>عرض سجل التقييمات (${evalCount})</summary>
+                    <table class="eval-table">
+                      <thead>
+                        <tr>
+                          <th>التاريخ</th>
+                          <th>الدرجة</th>
+                          <th>الأخطاء</th>
+                          <th>المحفَظ</th>
+                          <th>المراجع</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${evaluationsHtml}
+                      </tbody>
+                    </table>
+                  </details>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        return `
+          <section class="teacher-page">
+            <header class="teacher-header">
+              <h2 class="teacher-name">${escapeHtml(teacherName)}</h2>
+              <div class="teacher-contact">${escapeHtml(contact)}</div>
+            </header>
+            <div class="students-table-wrap">
+              <table class="students-table">
+                <thead>
+                  <tr>
+                    <th>اسم الطالب</th>
+                    <th>إجمالي النقاط الحالية</th>
+                    <th>عدد التقييمات السابقة</th>
+                    <th>سجل التقييمات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${studentsRows}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        `;
+      })
+      .join("<div style='page-break-after: always;'></div>");
+
+    return `<!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="utf-8" />
+          <title>تقرير المعلمين والطلاب</title>
+          <style>
+            @page { size: A4; margin: 12mm; }
+            body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; color:#0f172a; margin:0; padding:0; }
+            .teacher-page { padding: 6mm; page-break-inside: avoid; }
+            .teacher-header { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb; padding-bottom:6px; margin-bottom:8px; }
+            .teacher-name { font-size:18px; font-weight:700; color:#0f766e; }
+            .teacher-contact { font-size:12px; color:#475569; }
+            .students-table { width:100%; border-collapse:collapse; font-size:12px; }
+            .students-table th, .students-table td { border:1px solid #e6e6e6; padding:6px 8px; }
+            .students-table thead th { background:#f8fafc; font-weight:700; }
+            .eval-table { width:100%; border-collapse:collapse; margin-top:6px; font-size:11px; }
+            .eval-table th, .eval-table td { border:1px solid #eee; padding:4px 6px; }
+            details summary { cursor:pointer; color:#0f766e; font-weight:600; }
+            @media print { details { display:block; } }
+          </style>
+        </head>
+        <body>
+          <div class="report-root">
+            <h1 style="text-align:center; font-size:20px; margin:8px 0;">تقرير المعلمين والطلاب - سجل التقييمات</h1>
+            ${teachersHtml}
+          </div>
+        </body>
+      </html>`;
+  };
+
+  const handleExportTeachersSummary = async () => {
+    if (isExportingSummary) return;
+    setIsExportingSummary(true);
+    try {
+      const response = await api.get("/admin/export/teachers-summary");
+      const reportData = (response.data && response.data.reportData) || [];
+      if (!reportData.length) {
+        alert("لا توجد بيانات معلمين مجهزة للتصدير.");
+        return;
+      }
+
+      const printHtml = buildTeachersSummaryPdfHtml(reportData);
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "-9999px";
+      iframe.style.top = "-9999px";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+
+      iframe.srcdoc = printHtml;
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (err) {
+          console.error("Print error:", err);
+        }
+        setTimeout(() => {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        }, 1000);
+      };
+    } catch (error) {
+      console.error("Failed to export summary:", error);
+    } finally {
+      setIsExportingSummary(false);
+    }
+  };
 
   const parseCsvLine = (line) => {
     const values = [];
@@ -1025,6 +1182,17 @@ export default function SuperAdminDashboard() {
                     {isExportingCredentials
                       ? "جاري تحضير ملف PDF..."
                       : "تصدير بيانات الدخول"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportTeachersSummary}
+                    disabled={isExportingSummary}
+                    className="inline-flex items-center justify-center rounded-2xl bg-quran-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-quran-800 disabled:cursor-not-allowed disabled:bg-quran-400"
+                    style={{ marginLeft: 8 }}
+                  >
+                    {isExportingSummary
+                      ? "جاري تحضير تقرير PDF..."
+                      : "📑 تقرير المعلمين والطلاب (PDF)"}
                   </button>
                 </div>
                 <form className="space-y-4" onSubmit={handleCreateUser}>

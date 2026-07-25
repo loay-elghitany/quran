@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const Group = require("../models/group.model");
+const Evaluation = require("../models/evaluation.model");
 const SystemSettings = require("../models/systemSettings.model");
 
 const applyIfPresent = (target, field, value, options = {}) => {
@@ -179,6 +180,60 @@ const exportStudentCredentials = async (req, res, next) => {
     res.send(csvString);
   } catch (error) {
     console.error(error);
+    next(error);
+  }
+};
+
+const exportTeachersSummaryPdf = async (req, res, next) => {
+  try {
+    // 1. Fetch all teachers
+    const teachers = await User.find({ role: "Teacher" })
+      .select("_id firstName lastName email phone")
+      .lean();
+
+    // 2. Fetch all students populated with evaluations
+    const students = await User.find({ role: "Student" })
+      .select("_id firstName lastName points teacherId email")
+      .lean();
+
+    const studentIds = students.map((s) => s._id);
+
+    // 3. Fetch all evaluation history logs for these students
+    const evaluations = await Evaluation.find({
+      studentId: { $in: studentIds },
+    })
+      .sort({ date: -1 })
+      .lean();
+
+    // Map evaluations to corresponding student
+    const evaluationMap = {};
+    evaluations.forEach((evalItem) => {
+      const sId = String(evalItem.studentId);
+      if (!evaluationMap[sId]) evaluationMap[sId] = [];
+      evaluationMap[sId].push(evalItem);
+    });
+
+    // Map students to corresponding teacher
+    const teacherMap = teachers.map((teacher) => {
+      const assignedStudents = students
+        .filter((s) => String(s.teacherId) === String(teacher._id))
+        .map((student) => ({
+          ...student,
+          evaluations: evaluationMap[String(student._id)] || [],
+        }));
+
+      return {
+        ...teacher,
+        students: assignedStudents,
+      };
+    });
+
+    res.json({
+      success: true,
+      reportData: teacherMap,
+    });
+  } catch (error) {
+    console.error("Failed to generate teachers summary report:", error);
     next(error);
   }
 };
@@ -655,6 +710,7 @@ module.exports = {
   getUsers,
   getGroups,
   exportStudentCredentials,
+  exportTeachersSummaryPdf,
   getSystemSettings,
   updateSystemSettings,
 };

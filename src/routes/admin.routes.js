@@ -11,6 +11,7 @@ const {
   getUsers,
   getGroups,
   exportStudentCredentials,
+  exportTeachersSummaryPdf,
   getSystemSettings,
   updateSystemSettings,
 } = require("../controllers/superadmin.controller");
@@ -97,6 +98,7 @@ router.use(roleMiddleware("SuperAdmin"));
 router.get("/users", getUsers);
 router.get("/groups", getGroups);
 router.get("/export/students-credentials", exportStudentCredentials);
+router.get("/export/teachers-summary", exportTeachersSummaryPdf);
 router.post("/users", createUser);
 router.delete("/users/:id", validateParams(idParamsSchema), deleteUser);
 router.post("/groups", createGroup);

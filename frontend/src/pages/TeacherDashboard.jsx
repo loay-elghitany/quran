@@ -361,9 +361,13 @@ export default function TeacherDashboard() {
       try {
         const response = await api.get("/teacher/students-with-evaluations");
         setGroups(response.data.groups || []);
-      } catch (err) {
-        // ignore refresh errors but keep user notified
-        console.error("Failed to refresh groups after evaluation delete:", err);
+      } catch (error) {
+        console.error("Failed to save evaluation:", error);
+        const msg = getApiErrorMessage(
+          error,
+          "حدث خطأ أثناء حفظ التقييم. حاول مرة أخرى لاحقاً.",
+        );
+        setToastMessage(msg);
       }
 
       setTimeout(() => setToastMessage(""), 4000);
