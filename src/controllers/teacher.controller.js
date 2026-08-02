@@ -165,21 +165,6 @@ const createEvaluation = async (req, res, next) => {
       return res.status(400).json({ message: "يجب تحديد الطالب والحلقة." });
     }
 
-    // Rate limit: only one evaluation per student within a 24-hour window
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentEvaluation = await Evaluation.findOne({
-      studentId,
-      date: { $gte: twentyFourHoursAgo },
-    });
-
-    if (recentEvaluation) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "عذراً، تم إضافة تقييم لهذا الطالب خلال الـ 24 ساعة الماضية. يرجى حذف التقييم السابق أولاً من السجل إذا أردت إضافة تقييم جديد.",
-      });
-    }
-
     // Fetch dynamic settings from database
     let settings = await SystemSettings.findOne();
     if (!settings) {

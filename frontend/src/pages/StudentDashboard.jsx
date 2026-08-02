@@ -854,32 +854,59 @@ export default function StudentDashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
-                      <p className="font-semibold text-slate-800">
-                        الحفظ الجديد
-                      </p>
-                      <p className="mt-2">
-                        {item.newMemorization?.from || "-"} إلى{" "}
-                        {item.newMemorization?.to || "-"}
-                      </p>
-                      <p className="mt-2 text-xs text-quran-600 font-semibold">
-                        📖 عدد صفحات الحفظ: {item.memorizationPagesCount || 0}{" "}
-                        صفحة
-                      </p>
+                  {item.attendance === "غائب بعذر" ||
+                  item.attendance === "غائب بدون عذر" ? (
+                    <div
+                      className={`mt-6 rounded-3xl p-5 text-sm font-semibold transition shadow-sm border ${
+                        item.attendance === "غائب بدون عذر"
+                          ? "bg-rose-50 border-rose-200 text-rose-800"
+                          : "bg-amber-50 border-amber-200 text-amber-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">
+                          {item.attendance === "غائب بدون عذر" ? "⚠️" : "📌"}
+                        </span>
+                        <div>
+                          <p className="text-base font-bold">
+                            حالة الحضور: {item.attendance}
+                          </p>
+                          <p className="text-xs font-normal mt-1 opacity-90">
+                            {item.attendance === "غائب بدون عذر"
+                              ? "تم تسجيل غياب بدون عذر لهذا اليوم وخصم النقاط المقررة من رصيد الطالب."
+                              : "تم تسجيل غياب بعذر مقبول لهذا اليوم ولم يتم خصم أي نقاط."}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
-                      <p className="font-semibold text-slate-800">المراجعة</p>
-                      <p className="mt-2">
-                        {item.revision?.from || "-"} إلى{" "}
-                        {item.revision?.to || "-"}
-                      </p>
-                      <p className="mt-2 text-xs text-quran-600 font-semibold">
-                        🔄 عدد صفحات المراجعة: {item.revisionPagesCount || 0}{" "}
-                        صفحة
-                      </p>
+                  ) : (
+                    <div className="mt-6 grid gap-4 md:grid-cols-2">
+                      <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
+                        <p className="font-semibold text-slate-800">
+                          الحفظ الجديد
+                        </p>
+                        <p className="mt-2">
+                          {item.newMemorization?.from || "-"} إلى{" "}
+                          {item.newMemorization?.to || "-"}
+                        </p>
+                        <p className="mt-2 text-xs text-quran-600 font-semibold">
+                          📖 عدد صفحات الحفظ: {item.memorizationPagesCount || 0}{" "}
+                          صفحة
+                        </p>
+                      </div>
+                      <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
+                        <p className="font-semibold text-slate-800">المراجعة</p>
+                        <p className="mt-2">
+                          {item.revision?.from || "-"} إلى{" "}
+                          {item.revision?.to || "-"}
+                        </p>
+                        <p className="mt-2 text-xs text-quran-600 font-semibold">
+                          🔄 عدد صفحات المراجعة: {item.revisionPagesCount || 0}{" "}
+                          صفحة
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="mt-6 rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
                     <p className="font-semibold text-slate-800">

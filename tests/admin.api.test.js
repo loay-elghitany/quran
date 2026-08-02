@@ -193,6 +193,41 @@ describe("POST /api/admin/grant-points-student", () => {
   });
 });
 
+describe("POST /api/admin/deduct-points-student", () => {
+  it("should deduct points from a specific student", async () => {
+    const teacher = new User({
+      firstName: "Deduct",
+      lastName: "Teacher",
+      email: "deductteacher@example.com",
+      password: "teacherpass123",
+      role: "Teacher",
+    });
+    await teacher.save();
+
+    const student = new User({
+      firstName: "Deduct",
+      lastName: "Student",
+      email: "deductstudent@example.com",
+      password: "studentpass123",
+      role: "Student",
+      teacherId: teacher._id,
+      points: 50,
+    });
+    await student.save();
+
+    const response = await request(app)
+      .post("/api/admin/deduct-points-student")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ studentId: student._id.toString(), points: 20 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    const updatedStudent = await User.findById(student._id);
+    expect(updatedStudent.points).toBe(30);
+  });
+});
+
 describe("POST /api/admin/groups", () => {
   it("should create a group successfully as SuperAdmin", async () => {
     const teacher = new User({

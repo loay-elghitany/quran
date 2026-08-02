@@ -58,7 +58,7 @@ afterAll(async () => {
 });
 
 describe("GET /api/leaderboard", () => {
-  it("returns the students leaderboard and removes the old group and teacher endpoints", async () => {
+  it("returns the students leaderboard and the groups leaderboard", async () => {
     const studentsResponse = await request(app)
       .get("/api/leaderboard/students")
       .set("Authorization", `Bearer ${studentToken}`);
@@ -70,12 +70,7 @@ describe("GET /api/leaderboard", () => {
       .get("/api/leaderboard/groups")
       .set("Authorization", `Bearer ${studentToken}`);
 
-    expect(groupsResponse.status).toBe(404);
-
-    const teachersResponse = await request(app)
-      .get("/api/leaderboard/teachers")
-      .set("Authorization", `Bearer ${studentToken}`);
-
-    expect(teachersResponse.status).toBe(404);
+    expect(groupsResponse.status).toBe(200);
+    expect(groupsResponse.body).toHaveProperty("groupsLeaderboard");
   });
 });

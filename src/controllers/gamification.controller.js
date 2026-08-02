@@ -314,6 +314,57 @@ const grantPointsToStudent = async (req, res) => {
   }
 };
 
+const deductPointsFromStudent = async (req, res) => {
+  try {
+    const { studentId, points } = req.body;
+    const parsedPoints = Number(points);
+
+    if (!studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى اختيار طالب أولاً.",
+      });
+    }
+
+    if (!Number.isInteger(parsedPoints) || parsedPoints <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى إدخال عدد صحيح موجب للنقاط المراد خصمها.",
+      });
+    }
+
+    const updatedStudent = await User.findByIdAndUpdate(
+      studentId,
+      { $inc: { points: -parsedPoints } },
+      { new: true },
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({
+        success: false,
+        message: "الطالب غير موجود.",
+      });
+    }
+
+    if (updatedStudent.points < 0) {
+      updatedStudent.points = 0;
+      await updatedStudent.save();
+    }
+
+    res.json({
+      success: true,
+      message: `تم خصم ${parsedPoints} نقطة من الطالب بنجاح.`,
+      student: updatedStudent,
+    });
+  } catch (error) {
+    console.error("Failed to deduct points from student:", error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
+  }
+};
+
 // ============ MYSTERY BOX CONFIG OPERATIONS ============
 
 const getOrCreateMysteryBoxConfig = async (req, res) => {
@@ -388,6 +439,7 @@ module.exports = {
   deleteChallenge,
   grantPointsToAll,
   grantPointsToStudent,
+  deductPointsFromStudent,
   getOrCreateMysteryBoxConfig,
   updateMysteryBoxConfig,
 };

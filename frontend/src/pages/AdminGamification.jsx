@@ -324,6 +324,44 @@ export default function AdminGamification() {
     }
   };
 
+  const handleDeductPointsFromStudent = async (e) => {
+    e.preventDefault();
+
+    const points = Number(targetedPointsAmount);
+    if (!selectedPointsStudentId) {
+      setGrantStatusMessage("يرجى اختيار طالب أولاً.");
+      setTimeout(() => setGrantStatusMessage(""), 3000);
+      return;
+    }
+
+    if (!Number.isInteger(points) || points <= 0) {
+      setGrantStatusMessage("يرجى إدخال عدد صحيح موجب للنقاط المراد خصمها.");
+      setTimeout(() => setGrantStatusMessage(""), 3000);
+      return;
+    }
+
+    if (!window.confirm("هل أنت متأكد من خصم هذه النقاط من الطالب المختار؟")) {
+      return;
+    }
+
+    try {
+      await api.post("/admin/deduct-points-student", {
+        studentId: selectedPointsStudentId,
+        points,
+      });
+      setGrantStatusMessage(`تم خصم ${points} نقطة من الطالب المختار بنجاح.`);
+      setSelectedPointsStudentId("");
+      setTargetedPointsAmount("");
+      await loadStudentsList();
+      setTimeout(() => setGrantStatusMessage(""), 4000);
+    } catch (error) {
+      setGrantStatusMessage(
+        getApiErrorMessage(error, "فشل خصم النقاط من الطالب المختار."),
+      );
+      setTimeout(() => setGrantStatusMessage(""), 4000);
+    }
+  };
+
   // Mystery Box Handlers
   const handleAddReward = () => {
     if (!newReward.trim()) return;
@@ -1014,12 +1052,23 @@ export default function AdminGamification() {
                       placeholder="مثال: 40"
                     />
                   </label>
-                  <button
-                    onClick={handleGrantPointsToStudent}
-                    className="mt-4 w-full rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700 transition"
-                  >
-                    منح النقاط للطالب المختار
-                  </button>
+                  <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={handleGrantPointsToStudent}
+                      className="flex-1 rounded-3xl bg-quran-600 px-5 py-3 text-sm font-semibold text-white hover:bg-quran-700 transition shadow-sm"
+                    >
+                      ➕ منح النقاط للطالب
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDeductPointsFromStudent}
+                      className="flex-1 rounded-3xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white hover:bg-rose-700 transition shadow-sm"
+                    >
+                      ➖ خصم النقاط من الطالب
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

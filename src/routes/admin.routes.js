@@ -47,6 +47,7 @@ const {
   deleteChallenge,
   grantPointsToAll,
   grantPointsToStudent,
+  deductPointsFromStudent,
   getOrCreateMysteryBoxConfig,
   updateMysteryBoxConfig,
 } = require("../controllers/gamification.controller");
@@ -207,6 +208,7 @@ router.delete(
 
 router.post("/grant-points-all", grantPointsToAll);
 router.post("/grant-points-student", grantPointsToStudent);
+router.post("/deduct-points-student", deductPointsFromStudent);
 
 router.get("/mystery-box", getOrCreateMysteryBoxConfig);
 router.put(
