@@ -6,6 +6,7 @@ const rewardCreateSchema = Joi.object({
   quantity: Joi.number().integer().min(0).optional(),
   image: Joi.string().uri().optional().allow(""),
   imageUrl: Joi.string().uri().optional().allow(""),
+  youtubeUrl: Joi.string().uri().optional().allow(""),
   icon: Joi.string().trim().max(20).optional().allow(""),
   description: Joi.string().trim().max(500).optional().allow(""),
 });
@@ -16,6 +17,7 @@ const rewardUpdateSchema = Joi.object({
   quantity: Joi.number().integer().min(0).optional(),
   image: Joi.string().uri().optional().allow(""),
   imageUrl: Joi.string().uri().optional().allow(""),
+  youtubeUrl: Joi.string().uri().optional().allow(""),
   icon: Joi.string().trim().max(20).optional().allow(""),
   description: Joi.string().trim().max(500).optional().allow(""),
 }).min(1);

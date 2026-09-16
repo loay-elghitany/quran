@@ -33,6 +33,7 @@ export default function SuperAdminDashboard() {
   const [userStatus, setUserStatus] = useState("");
   const [isExportingCredentials, setIsExportingCredentials] = useState(false);
   const [isExportingSummary, setIsExportingSummary] = useState(false);
+  const [isExportingTopStudents, setIsExportingTopStudents] = useState(false);
   const [activeTab, setActiveTab] = useState("teachers");
 
   const tabs = [
@@ -472,6 +473,78 @@ export default function SuperAdminDashboard() {
       console.error("Failed to export summary:", error);
     } finally {
       setIsExportingSummary(false);
+    }
+  };
+
+  const buildTopStudentsPdfHtml = (reportData) => {
+    const { topStudents = [], groupsLeaderboard = [] } = reportData;
+    const topStudentsRows = topStudents
+      .map((student, index) => {
+        const teacherName = student.teacherId
+          ? `${student.teacherId.firstName || ""} ${student.teacherId.lastName || ""}`.trim()
+          : "—";
+        const rankBadge =
+          index === 0
+            ? "🥇 الأول"
+            : index === 1
+              ? "🥈 الثاني"
+              : index === 2
+                ? "🥉 الثالث"
+                : `#${index + 1}`;
+        return `<tr><td style="text-align:center; font-weight:bold;">${rankBadge}</td><td style="font-weight:600;">${escapeHtml(student.firstName || "")} ${escapeHtml(student.lastName || "")}</td><td>${escapeHtml(teacherName)}</td><td style="text-align:center; font-weight:bold; color:#0f766e;">${escapeHtml(String(student.points || 0))} 🪙</td></tr>`;
+      })
+      .join("");
+    const groupsHtml = groupsLeaderboard
+      .map((group) => {
+        const topList = (group.topStudents || [])
+          .map(
+            (student, index) =>
+              `<li><strong>${index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"} ${escapeHtml(student.firstName || "")} ${escapeHtml(student.lastName || "")}</strong> (${escapeHtml(String(student.points || 0))} نقطة)</li>`,
+          )
+          .join("");
+        return `<div class="group-card"><div class="group-title">${escapeHtml(group.groupName || "")} (المعلم: ${escapeHtml(group.teacherName || "")})</div><div class="group-points">إجمالي نقاط الحلقة: ${escapeHtml(String(group.totalGroupPoints || 0))} 🪙 | عدد الطلاب: ${escapeHtml(String(group.allStudentsCount || 0))}</div><ul class="top-list">${topList || "<li>لا يوجد طلاب مسجلين</li>"}</ul></div>`;
+      })
+      .join("");
+    return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8" /><title>لوحة شرف الأوائل وصدارة المجموعات</title><style>@page { size: A4; margin: 10mm; } body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: #0f172a; margin: 0; padding: 10px; direction: rtl; } .report-header { text-align: center; border-bottom: 2px solid #0f766e; padding-bottom: 8px; margin-bottom: 15px; } .report-header h1 { color: #0f766e; margin: 0 0 4px 0; font-size: 20px; } .section-title { font-size: 15px; font-weight: bold; color: #0f766e; margin: 15px 0 8px 0; border-right: 4px solid #0f766e; padding-right: 8px; } table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 15px; } th, td { border: 1px solid #cbd5e1; padding: 6px 8px; } th { background: #f1f5f9; color: #334155; } .groups-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; } .group-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 12px; background: #fafafa; break-inside: avoid; } .group-title { font-weight: bold; color: #0f766e; font-size: 13px; } .group-points { font-size: 11px; color: #64748b; margin-bottom: 6px; } .top-list { margin: 0; padding-right: 18px; font-size: 11px; }</style></head><body><div class="report-header"><h1>🏆 لوحة شرف الأوائل وصدارة الحلقات القرآنية</h1><div style="font-size:11px; color:#64748b;">تاريخ التصدير: ${new Date().toLocaleDateString("ar-EG")}</div></div><div class="section-title">🌟 قائمة الـ 20 الأوائل على مستوى الأكاديمية</div><table><thead><tr><th style="width: 15%;">الترتيب</th><th>اسم الطالب</th><th>المعلم</th><th style="width: 20%;">إجمالي النقاط</th></tr></thead><tbody>${topStudentsRows}</tbody></table><div><div class="section-title">👥 أوائل الحلقات والمجموعات القرآنية</div><div class="groups-grid">${groupsHtml}</div></div></body></html>`;
+  };
+
+  const handleExportTopStudents = async () => {
+    if (isExportingTopStudents) return;
+    setIsExportingTopStudents(true);
+    try {
+      const response = await api.get("/admin/export/top-students");
+      const data = response.data?.data;
+      if (
+        !data ||
+        (!data.topStudents?.length && !data.groupsLeaderboard?.length)
+      ) {
+        alert("لا توجد بيانات متاحة للتصدير.");
+        return;
+      }
+      const iframe = document.createElement("iframe");
+      Object.assign(iframe.style, {
+        position: "fixed",
+        right: "-9999px",
+        top: "-9999px",
+        width: "0",
+        height: "0",
+        border: "0",
+      });
+      document.body.appendChild(iframe);
+      iframe.srcdoc = buildTopStudentsPdfHtml(data);
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (error) {
+          console.error("Print error:", error);
+        }
+        window.setTimeout(() => iframe.parentNode?.removeChild(iframe), 1000);
+      };
+    } catch (error) {
+      console.error("Failed to export top students:", error);
+    } finally {
+      setIsExportingTopStudents(false);
     }
   };
 
@@ -1193,6 +1266,17 @@ export default function SuperAdminDashboard() {
                     {isExportingSummary
                       ? "جاري تحضير تقرير PDF..."
                       : "📑 تقرير المعلمين والطلاب (PDF)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportTopStudents}
+                    disabled={isExportingTopStudents}
+                    className="inline-flex items-center justify-center rounded-2xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-amber-400"
+                    style={{ marginLeft: 8 }}
+                  >
+                    {isExportingTopStudents
+                      ? "جاري تحضير الملف..."
+                      : "🏆 لوحة شرف الأوائل (PDF)"}
                   </button>
                 </div>
                 <form className="space-y-4" onSubmit={handleCreateUser}>

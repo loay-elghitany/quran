@@ -30,6 +30,7 @@ const initialRewardForm = {
   quantity: 1,
   image: "",
   imageUrl: "",
+  youtubeUrl: "",
   icon: "",
   description: "",
 };
@@ -127,6 +128,7 @@ export default function AdminRewardsManager() {
       quantity: reward.quantity?.toString() ?? "1",
       image: imageLink,
       imageUrl: imageLink,
+      youtubeUrl: reward.youtubeUrl || "",
       icon: reward.icon || "",
       description: reward.description || "",
     });
@@ -154,6 +156,7 @@ export default function AdminRewardsManager() {
         pointsRequired: Number(rewardForm.pointsRequired),
         quantity: Number(rewardForm.quantity ?? 1),
         image: rewardForm.image || rewardForm.imageUrl || "",
+        youtubeUrl: rewardForm.youtubeUrl || "",
         icon: rewardForm.icon,
         description: rewardForm.description,
       };
@@ -315,6 +318,17 @@ export default function AdminRewardsManager() {
             ) : null}
             <div className="grid gap-4 lg:grid-cols-2">
               <label className="space-y-2 text-sm text-slate-700">
+                رابط فيديو يوتيوب توضيحي (اختياري)
+                <input
+                  type="url"
+                  value={rewardForm.youtubeUrl || ""}
+                  onChange={(e) => handleChange("youtubeUrl", e.target.value)}
+                  className="w-full rounded-3xl border border-slate-300 px-4 py-3 text-left"
+                  dir="ltr"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+              </label>
+              <label className="space-y-2 text-sm text-slate-700">
                 أيقونة / رمز تعريفي
                 <input
                   value={rewardForm.icon}
@@ -323,16 +337,16 @@ export default function AdminRewardsManager() {
                   placeholder="مثال: 🏅"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-700">
-                وصف قصير
-                <input
-                  value={rewardForm.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  className="w-full rounded-3xl border border-slate-300 px-4 py-3"
-                  placeholder="مثال: مكافأة للطالب المتميز"
-                />
-              </label>
             </div>
+            <label className="space-y-2 text-sm text-slate-700">
+              وصف قصير
+              <input
+                value={rewardForm.description}
+                onChange={(e) => handleChange("description", e.target.value)}
+                className="w-full rounded-3xl border border-slate-300 px-4 py-3"
+                placeholder="مثال: مكافأة للطالب المتميز"
+              />
+            </label>
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="submit"
@@ -390,6 +404,11 @@ export default function AdminRewardsManager() {
                         <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
                           الكمية: {reward.quantity ?? 0}
                         </span>
+                        {reward.youtubeUrl ? (
+                          <span className="rounded-full bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+                            فيديو مرفق
+                          </span>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => handleEdit(reward)}

@@ -18,6 +18,7 @@ const createReward = async (req, res) => {
       quantity,
       image,
       imageUrl,
+      youtubeUrl,
       icon,
       description,
     } = req.body;
@@ -35,6 +36,7 @@ const createReward = async (req, res) => {
       quantity,
       image: imageValue,
       imageUrl: imageValue,
+      youtubeUrl: youtubeUrl || "",
       icon,
       description,
     });
@@ -75,6 +77,7 @@ const updateReward = async (req, res) => {
       quantity,
       image,
       imageUrl,
+      youtubeUrl,
       icon,
       description,
     } = req.body;
@@ -87,6 +90,7 @@ const updateReward = async (req, res) => {
     if (quantity !== undefined) updatePayload.quantity = quantity;
     if (icon !== undefined) updatePayload.icon = icon;
     if (description !== undefined) updatePayload.description = description;
+    if (youtubeUrl !== undefined) updatePayload.youtubeUrl = youtubeUrl;
     if (imageValue !== undefined) {
       updatePayload.image = imageValue;
       updatePayload.imageUrl = imageValue;

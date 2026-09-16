@@ -26,6 +26,11 @@ const RewardSchema = new Schema({
     type: String,
     trim: true,
   },
+  youtubeUrl: {
+    type: String,
+    trim: true,
+    default: "",
+  },
   icon: {
     type: String,
     trim: true,

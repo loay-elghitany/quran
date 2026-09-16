@@ -16,7 +16,23 @@ const redemptionStatusClass = {
   rejected: "text-rose-600",
 };
 
-function RewardCard({ reward, onRedeem, disabled, availablePoints }) {
+function getYouTubeEmbedUrl(url) {
+  if (!url) return null;
+
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|watch\?.+&v=))([\w-]{11})/,
+  );
+
+  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : null;
+}
+
+function RewardCard({
+  reward,
+  onRedeem,
+  disabled,
+  availablePoints,
+  onWatchVideo,
+}) {
   const imageUrl = reward.image || reward.imageUrl || "";
   const isOutOfStock =
     reward.quantity === undefined || Number(reward.quantity) <= 0;
@@ -36,55 +52,72 @@ function RewardCard({ reward, onRedeem, disabled, availablePoints }) {
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-      <div className="w-full h-48 bg-slate-100 rounded-t-3xl overflow-hidden relative">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={reward.name}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 text-4xl text-slate-500">
-            {reward.icon || "🏆"}
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-200 hover:shadow-xl">
+      <div>
+        <div className="relative h-52 w-full overflow-hidden bg-slate-100">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={reward.name}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-emerald-50 via-teal-50 to-slate-100 text-5xl">
+              {reward.icon || "🎁"}
+            </div>
+          )}
+          <div className="absolute right-3 top-3 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-amber-300 shadow-md backdrop-blur-md">
+            🪙 {reward.pointsRequired} نقطة
           </div>
-        )}
-      </div>
-      <div className="space-y-4 p-5">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">
-            {reward.name}
-          </h3>
-          <p className="mt-3 text-sm leading-6 text-slate-600 line-clamp-2">
-            {reward.description || "مكافأة جميلة تستحق التجربة."}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-              {reward.pointsRequired} نقطة
-            </span>
-            <span
-              className={`rounded-full px-3 py-2 text-sm font-semibold ${
-                isOutOfStock
-                  ? "bg-slate-200 text-slate-500"
-                  : "bg-slate-100 text-slate-700"
-              }`}
-            >
-              {isOutOfStock ? "نفدت الكمية" : `المتبقي: ${reward.quantity} قطع`}
-            </span>
-          </div>
-          {onRedeem ? (
+          {reward.youtubeUrl ? (
             <button
               type="button"
-              disabled={isDisabled}
-              onClick={() => onRedeem(reward._id)}
-              className={`inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold transition ${buttonClassName}`}
+              onClick={() => onWatchVideo(reward.youtubeUrl)}
+              className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-red-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-sm transition hover:bg-red-600 active:scale-95"
             >
-              {buttonText}
+              <span aria-hidden="true">▶</span>
+              مشاهدة الفيديو
             </button>
           ) : null}
         </div>
+        <div className="space-y-2 p-5">
+          <h3 className="line-clamp-1 text-lg font-bold text-slate-800">
+            {reward.name}
+          </h3>
+          <p className="line-clamp-2 text-xs leading-relaxed text-slate-500">
+            {reward.description || "مكافأة مميزة لأبطال حلقات القرآن الكريم."}
+          </p>
+        </div>
+      </div>
+      <div className="p-5 pt-0">
+        <div className="mb-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+          <span>الكمية المتوفرة:</span>
+          <span
+            className={`font-bold ${isOutOfStock ? "text-rose-500" : "text-emerald-600"}`}
+          >
+            {isOutOfStock ? "نفدت الكمية" : `${reward.quantity} قطع`}
+          </span>
+        </div>
+        {onRedeem ? (
+          <button
+            type="button"
+            disabled={isDisabled}
+            onClick={() => onRedeem(reward._id)}
+            className={`w-full rounded-2xl py-2.5 text-sm font-bold shadow-sm transition ${
+              isOutOfStock
+                ? "cursor-not-allowed bg-slate-200 text-slate-400"
+                : !hasEnoughPoints
+                  ? "cursor-not-allowed border border-amber-200 bg-amber-50 text-amber-600"
+                  : "bg-emerald-600 text-white shadow-emerald-200/50 hover:bg-emerald-700 active:scale-[0.98]"
+            }`}
+          >
+            {isOutOfStock
+              ? "نفدت الكمية"
+              : !hasEnoughPoints
+                ? "النقاط غير كافية"
+                : "استبدال الآن 🎁"}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -106,9 +139,11 @@ export default function RewardsStore() {
     icon: "",
     image: "",
     imageUrl: "",
+    youtubeUrl: "",
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeVideoUrl, setActiveVideoUrl] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -187,6 +222,7 @@ export default function RewardsStore() {
         pointsRequired: Number(newReward.pointsRequired),
         quantity: Number(newReward.quantity ?? 1),
         image: newReward.image || newReward.imageUrl || "",
+        youtubeUrl: newReward.youtubeUrl || "",
         description: newReward.description,
         icon: newReward.icon,
       });
@@ -199,6 +235,7 @@ export default function RewardsStore() {
         icon: "",
         image: "",
         imageUrl: "",
+        youtubeUrl: "",
       });
       const response = await api.get("/admin/rewards");
       setRewards(response.data.rewards || []);
@@ -282,6 +319,7 @@ export default function RewardsStore() {
                     onRedeem={userRole === "Student" ? handleRedeem : null}
                     disabled={false}
                     availablePoints={availablePoints}
+                    onWatchVideo={(url) => setActiveVideoUrl(url)}
                   />
                 ))
               )}
@@ -435,6 +473,19 @@ export default function RewardsStore() {
                 />
               </label>
               <label className="space-y-2 text-sm text-slate-700">
+                رابط فيديو يوتيوب (اختياري)
+                <input
+                  type="url"
+                  value={newReward.youtubeUrl}
+                  onChange={(e) =>
+                    setNewReward({ ...newReward, youtubeUrl: e.target.value })
+                  }
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full rounded-3xl border border-slate-200 p-4 text-left text-slate-900"
+                  dir="ltr"
+                />
+              </label>
+              <label className="space-y-2 text-sm text-slate-700">
                 أيقونة (اختياري)
                 <input
                   value={newReward.icon}
@@ -463,6 +514,45 @@ export default function RewardsStore() {
           </form>
         </div>
       )}
+
+      {activeVideoUrl ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="معاينة فيديو المكافأة"
+          onClick={() => setActiveVideoUrl(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-800 bg-black shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveVideoUrl(null)}
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/40"
+              aria-label="إغلاق الفيديو"
+            >
+              ✕
+            </button>
+            <div className="relative aspect-video">
+              {getYouTubeEmbedUrl(activeVideoUrl) ? (
+                <iframe
+                  className="absolute inset-0 h-full w-full"
+                  src={getYouTubeEmbedUrl(activeVideoUrl)}
+                  title="معاينة المنتج"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center p-8 text-center text-white">
+                  رابط الفيديو غير صالح.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

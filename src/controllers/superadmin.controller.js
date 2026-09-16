@@ -238,6 +238,54 @@ const exportTeachersSummaryPdf = async (req, res, next) => {
   }
 };
 
+const exportTopStudentsPdf = async (req, res, next) => {
+  try {
+    const topStudents = await User.find({ role: "Student" })
+      .select("firstName lastName points email phone teacherId")
+      .populate("teacherId", "firstName lastName")
+      .sort({ points: -1 })
+      .limit(20)
+      .lean();
+
+    const groups = await Group.find()
+      .populate("teacherId", "firstName lastName")
+      .populate("studentIds", "firstName lastName points")
+      .lean();
+
+    const groupsLeaderboard = groups.map((group) => {
+      const sortedStudents = (group.studentIds || [])
+        .map((student) => ({
+          studentId: student._id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          points: student.points || 0,
+        }))
+        .sort((a, b) => b.points - a.points);
+
+      const totalGroupPoints = sortedStudents.reduce(
+        (sum, student) => sum + student.points,
+        0,
+      );
+
+      return {
+        groupId: group._id,
+        groupName: group.name,
+        teacherName: group.teacherId
+          ? `${group.teacherId.firstName || ""} ${group.teacherId.lastName || ""}`.trim()
+          : "غير محدد",
+        totalGroupPoints,
+        topStudents: sortedStudents.slice(0, 3),
+        allStudentsCount: sortedStudents.length,
+      };
+    });
+
+    res.json({ success: true, data: { topStudents, groupsLeaderboard } });
+  } catch (error) {
+    console.error("Failed to export top students report:", error);
+    next(error);
+  }
+};
+
 const updateStudent = async (req, res, next) => {
   try {
     const studentId = req.params.id;
@@ -711,6 +759,7 @@ module.exports = {
   getGroups,
   exportStudentCredentials,
   exportTeachersSummaryPdf,
+  exportTopStudentsPdf,
   getSystemSettings,
   updateSystemSettings,
 };

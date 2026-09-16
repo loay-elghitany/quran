@@ -12,6 +12,7 @@ const {
   getGroups,
   exportStudentCredentials,
   exportTeachersSummaryPdf,
+  exportTopStudentsPdf,
   getSystemSettings,
   updateSystemSettings,
 } = require("../controllers/superadmin.controller");
@@ -100,6 +101,7 @@ router.get("/users", getUsers);
 router.get("/groups", getGroups);
 router.get("/export/students-credentials", exportStudentCredentials);
 router.get("/export/teachers-summary", exportTeachersSummaryPdf);
+router.get("/export/top-students", exportTopStudentsPdf);
 router.post("/users", createUser);
 router.delete("/users/:id", validateParams(idParamsSchema), deleteUser);
 router.post("/groups", createGroup);
