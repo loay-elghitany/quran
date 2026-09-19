@@ -26,30 +26,69 @@ const toEmbedUrl = (url) => {
 };
 
 const loadYouTubeApi = () => {
-  return new Promise((resolve) => {
-    if (window.YT && window.YT.Player) {
+  if (window.YT && window.YT.Player) {
+    return Promise.resolve();
+  }
+
+  if (window.__quranYoutubeApiPromise) {
+    return window.__quranYoutubeApiPromise;
+  }
+
+  window.__quranYoutubeApiPromise = new Promise((resolve) => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+
+    const finalize = () => {
+      if (typeof previousReady === "function") {
+        previousReady();
+      }
       resolve();
-      return;
-    }
+    };
 
     const existingScript = document.getElementById("youtube-iframe-api");
-    if (existingScript) {
-      if (window.YT && window.YT.Player) {
-        resolve();
-        return;
-      }
-
-      existingScript.addEventListener("load", () => resolve(), { once: true });
+    if (window.YT && window.YT.Player) {
+      finalize();
       return;
     }
+
+    if (existingScript) {
+      const safeResolve = () => {
+        if (window.YT && window.YT.Player) {
+          finalize();
+          return;
+        }
+        window.setTimeout(safeResolve, 150);
+      };
+
+      window.onYouTubeIframeAPIReady = () => {
+        finalize();
+      };
+      safeResolve();
+      return;
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+      finalize();
+    };
 
     const tag = document.createElement("script");
     tag.id = "youtube-iframe-api";
     tag.src = "https://www.youtube.com/iframe_api";
     tag.async = true;
-    tag.onload = () => resolve();
+    tag.onload = () => {
+      if (window.YT && window.YT.Player) {
+        finalize();
+      }
+    };
+    tag.onerror = () => {
+      console.warn(
+        "YouTube API failed to load; video playback will remain disabled.",
+      );
+      finalize();
+    };
     document.body.appendChild(tag);
   });
+
+  return window.__quranYoutubeApiPromise;
 };
 
 export default function StudentLessons() {
@@ -205,25 +244,36 @@ export default function StudentLessons() {
       try {
         const response = await api.get("/student/curriculum/student-lessons");
         const data = response.data || {};
+        const curriculumData = data.curriculum || null;
 
-        if (data.curriculum) {
-          setCurriculum({
-            ...data.curriculum,
-            currentLessonIndex: data.currentLessonIndex ?? 0,
-            progressList: data.progressList || [],
-          });
-          setSelectedLessonIndex(
-            Math.min(
-              data.currentLessonIndex ?? 0,
-              data.curriculum.lessons.length - 1,
-            ),
+        if (curriculumData && Array.isArray(curriculumData.lessons)) {
+          const normalizedCurriculum = {
+            ...curriculumData,
+            currentLessonIndex: Number(data.currentLessonIndex ?? 0),
+            progressList: Array.isArray(data.progressList)
+              ? data.progressList
+              : [],
+          };
+
+          const totalLessons = normalizedCurriculum.lessons.length || 1;
+          const safeIndex = Math.max(
+            0,
+            Math.min(Number(data.currentLessonIndex ?? 0), totalLessons - 1),
           );
-        } else {
-          setCurriculum(null);
-          setSelectedLessonIndex(0);
+
+          setCurriculum(normalizedCurriculum);
+          setSelectedLessonIndex(safeIndex);
+          setError("");
+          return;
         }
+
+        setCurriculum(null);
+        setSelectedLessonIndex(0);
+        setError("");
       } catch (error) {
         console.error("فشل تحميل الدروس:", error);
+        setCurriculum(null);
+        setSelectedLessonIndex(0);
         setError(
           error?.response?.data?.message ||
             "تعذر تحميل الدروس في الوقت الحالي.",
@@ -237,15 +287,22 @@ export default function StudentLessons() {
 
     return () => {
       clearProgressTracking();
-      if (playerRef.current) {
+      if (
+        playerRef.current &&
+        typeof playerRef.current.destroy === "function"
+      ) {
         playerRef.current.destroy();
-        playerRef.current = null;
       }
+      playerRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (!selectedLesson || !playerContainerRef.current) return;
+    if (!selectedLesson || !playerContainerRef.current) {
+      clearProgressTracking();
+      setVideoReady(false);
+      return;
+    }
 
     const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
     if (!videoId) {
@@ -256,11 +313,19 @@ export default function StudentLessons() {
 
     const initializePlayer = async () => {
       try {
-        await loadYouTubeApi();
+        if (!window.YT || !window.YT.Player) {
+          await loadYouTubeApi();
+        }
 
-        if (!playerContainerRef.current) return;
+        if (!playerContainerRef.current || !window.YT || !window.YT.Player) {
+          setVideoReady(false);
+          return;
+        }
 
-        if (playerRef.current) {
+        if (
+          playerRef.current &&
+          typeof playerRef.current.destroy === "function"
+        ) {
           playerRef.current.destroy();
         }
 
@@ -310,6 +375,7 @@ export default function StudentLessons() {
         });
       } catch (err) {
         console.error("فشل تجهيز الفيديو:", err);
+        setVideoReady(false);
         setError("تعذر تشغيل الفيديو في هذا المتصفح. حاول مرة أخرى.");
       }
     };
@@ -322,10 +388,13 @@ export default function StudentLessons() {
       if (percentage !== null) {
         handleProgressMilestones(percentage, true);
       }
-      if (playerRef.current) {
+      if (
+        playerRef.current &&
+        typeof playerRef.current.destroy === "function"
+      ) {
         playerRef.current.destroy();
-        playerRef.current = null;
       }
+      playerRef.current = null;
     };
   }, [selectedLessonIndex, selectedLesson]);
 
