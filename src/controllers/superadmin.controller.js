@@ -675,6 +675,7 @@ const getSystemSettings = async (req, res, next) => {
       errorPenaltyMultiplier: settings.errorPenaltyMultiplier ?? 1,
       memorizationPageBonus: settings.memorizationPageBonus ?? 10,
       revisionPageBonus: settings.revisionPageBonus ?? 5,
+      videoQuestionPoints: settings.videoQuestionPoints ?? 3,
     };
 
     res.json({ settings: normalizedSettings });
@@ -706,6 +707,7 @@ const updateSystemSettings = async (req, res, next) => {
       "gradeAcceptablePoints",
       "memorizationPageBonus",
       "revisionPageBonus",
+      "videoQuestionPoints",
     ];
 
     const updates = {};

@@ -9,6 +9,7 @@ const {
   createAssignment,
   createEvaluation,
   deleteEvaluation,
+  getStudentLessonProgress,
   getEvaluationHistory,
   getLeaveRequests,
   updateLeaveRequestStatus,
@@ -59,6 +60,7 @@ router.use(roleMiddleware("Teacher"));
 router.get("/dashboard", getTeacherDashboard);
 router.get("/students-with-evaluations", getTeacherStudentsWithEvaluations);
 router.get("/students", getStudents);
+router.get("/students/:studentId/lesson-progress", getStudentLessonProgress);
 router.get("/badges", getBadges);
 router.post(
   "/students/:studentId/award-badge",

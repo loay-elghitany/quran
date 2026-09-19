@@ -24,6 +24,11 @@ const SystemSettingsSchema = new Schema(
     errorPenaltyMultiplier: { type: Number, default: 1 },
     memorizationPageBonus: { type: Number, default: 10 },
     revisionPageBonus: { type: Number, default: 5 },
+    videoQuestionPoints: {
+      type: Number,
+      default: 3,
+      min: 0,
+    },
   },
   { timestamps: true },
 );

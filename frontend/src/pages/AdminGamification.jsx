@@ -62,6 +62,7 @@ export default function AdminGamification() {
     errorPenaltyMultiplier: 1,
     memorizationPageBonus: 10,
     revisionPageBonus: 5,
+    videoQuestionPoints: 3,
   });
   const [settingsMessage, setSettingsMessage] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -228,6 +229,7 @@ export default function AdminGamification() {
         errorPenaltyMultiplier: s.errorPenaltyMultiplier ?? 1,
         memorizationPageBonus: s.memorizationPageBonus ?? 10,
         revisionPageBonus: s.revisionPageBonus ?? 5,
+        videoQuestionPoints: s.videoQuestionPoints ?? 3,
       });
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -865,6 +867,27 @@ export default function AdminGamification() {
                         />
                       </label>
                     </div>
+                  </div>
+
+                  <div className="rounded-3xl bg-quran-50 p-5">
+                    <p className="font-semibold text-slate-900 mb-3">
+                      أسئلة الفيديوهات
+                    </p>
+                    <label className="block text-sm text-slate-700">
+                      نقاط كل سؤال من أسئلة الفيديوهات
+                      <input
+                        type="number"
+                        value={settingsForm.videoQuestionPoints}
+                        onChange={(e) =>
+                          handleSettingsFieldChange(
+                            "videoQuestionPoints",
+                            e.target.value,
+                          )
+                        }
+                        className="mt-1 w-full rounded-3xl border border-slate-300 bg-white px-4 py-2 text-sm"
+                        min={0}
+                      />
+                    </label>
                   </div>
 
                   <button

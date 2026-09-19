@@ -191,6 +191,19 @@ export default function Navbar({ role }) {
                       الحقيبة التدريبية
                     </button>
                   )}
+                  {role === "Student" && (
+                    <button
+                      type="button"
+                      onClick={() => navigateTo("/student/lessons")}
+                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                        isActive("/student/lessons")
+                          ? "bg-quran-800"
+                          : "hover:bg-quran-800"
+                      }`}
+                    >
+                      الدروس والفيديوهات 🎬
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => navigateTo("/leaderboard")}

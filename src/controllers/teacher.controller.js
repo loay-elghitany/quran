@@ -4,6 +4,7 @@ const Evaluation = require("../models/evaluation.model");
 const Badge = require("../models/badge.model");
 const LeaveRequest = require("../models/leaverequest.model");
 const User = require("../models/user.model");
+const LessonProgress = require("../models/lessonProgress.model");
 const SystemSettings = require("../models/systemSettings.model");
 const notificationService = require("../services/notification.service");
 
@@ -50,7 +51,7 @@ const getTeacherStudentsWithEvaluations = async (req, res) => {
             })
               .sort({ date: -1 })
               .select(
-                "date attendance earnedPoints newMemorization revision mistakes grade notes audioNote groupId",
+                "date attendance earnedPoints newMemorization revision mistakes grade notes audioNote groupId videoQuestionsCorrect videoQuestionsPoints",
               )
               .populate("groupId", "name");
 
@@ -150,6 +151,11 @@ const createEvaluation = async (req, res, next) => {
       notes,
     } = req.body;
 
+    const videoQuestionsCorrect = Math.min(
+      10,
+      Math.max(0, Number(req.body.videoQuestionsCorrect || 0)),
+    );
+
     const memorizationPagesCount =
       parseFloat(
         req.body.memorizationPagesCount ||
@@ -211,10 +217,23 @@ const createEvaluation = async (req, res, next) => {
           ? Number(settings.revisionPageBonus)
           : 5) * parsedRevPages;
 
+      const questionPointsUnit =
+        settings.videoQuestionPoints !== undefined
+          ? Number(settings.videoQuestionPoints)
+          : 3;
+      const videoQuizPoints = isPresent
+        ? videoQuestionsCorrect * questionPointsUnit
+        : 0;
+
       const mistakesPenalty = Number(mistakes || 0) * 1;
 
       points =
-        gradePoints + attendancePoints + memBonus + revBonus - mistakesPenalty;
+        gradePoints +
+        attendancePoints +
+        memBonus +
+        revBonus +
+        videoQuizPoints -
+        mistakesPenalty;
     }
 
     const earnedPoints = Math.max(0, Math.round(points));
@@ -236,6 +255,13 @@ const createEvaluation = async (req, res, next) => {
       memorizationPagesCount: Number(memorizationPagesCount) || 0,
       revisionPagesCount: Number(revisionPagesCount) || 0,
       mistakes,
+      videoQuestionsCorrect,
+      videoQuestionsPoints: isPresent
+        ? videoQuestionsCorrect *
+          (settings.videoQuestionPoints !== undefined
+            ? Number(settings.videoQuestionPoints)
+            : 3)
+        : 0,
       grade: isPresent ? normalizedGrade : undefined,
       notes,
       audioNote: req.file?.path || undefined,
@@ -354,6 +380,75 @@ const awardBadge = async (req, res) => {
   }
 };
 
+const getStudentLessonProgress = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    if (!studentId) {
+      return res.status(400).json({ message: "يجب تحديد الطالب." });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "الطالب غير موجود." });
+    }
+
+    const group = await Group.findOne({
+      teacherId: req.user._id,
+      studentIds: student._id,
+    }).populate("curriculumId");
+
+    if (!group || !group.curriculumId) {
+      return res.json({
+        studentId: student._id,
+        hasWatched: false,
+        watchPercentage: 0,
+        currentLessonIndex: 0,
+        lessonIndex: null,
+        lessonTitle: null,
+        message: "⚠️ لم يتم مشاهدة الفيديو بعد",
+      });
+    }
+
+    const currentLessonIndex = Math.max(
+      0,
+      Number(group.currentLessonIndex ?? 0),
+    );
+
+    const lesson =
+      group.curriculumId.lessons?.[currentLessonIndex] ||
+      group.curriculumId.lessons?.[0] ||
+      null;
+
+    const progress = await LessonProgress.findOne({
+      studentId: student._id,
+      curriculumId: group.curriculumId._id,
+      lessonIndex: currentLessonIndex,
+    });
+
+    const watchPercentage = progress?.watchPercentage ?? 0;
+
+    res.json({
+      studentId: student._id,
+      groupId: group._id,
+      hasWatched: Boolean(progress?.hasWatched) || watchPercentage >= 75,
+      watchPercentage,
+      currentLessonIndex,
+      lessonIndex: lesson ? currentLessonIndex : null,
+      lessonTitle: lesson?.title || null,
+      message:
+        watchPercentage >= 75
+          ? `🎬 تم مشاهدة الدرس: ${watchPercentage}%`
+          : "⚠️ لم يتم مشاهدة الفيديو بعد",
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
+  }
+};
+
 const getEvaluationHistory = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -458,6 +553,7 @@ module.exports = {
   createAssignment,
   createEvaluation,
   deleteEvaluation,
+  getStudentLessonProgress,
   getEvaluationHistory,
   getLeaveRequests,
   updateLeaveRequestStatus,

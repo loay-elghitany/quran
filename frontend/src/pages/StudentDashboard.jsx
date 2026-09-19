@@ -834,7 +834,7 @@ export default function StudentDashboard() {
                         {formatDate(item.date)}
                       </p>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-4">
                       <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
                         <p className="text-slate-500">التقييم</p>
                         <p className="mt-1 font-semibold">
@@ -849,6 +849,12 @@ export default function StudentDashboard() {
                         <p className="text-slate-500">الحضور</p>
                         <p className="mt-1 font-semibold">
                           {item.attendance || "-"}
+                        </p>
+                      </div>
+                      <div className="rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
+                        <p className="text-slate-500">أسئلة الفيديو</p>
+                        <p className="mt-1 font-semibold text-quran-700">
+                          {item.videoQuestionsCorrect ?? 0} من 10 إجابات
                         </p>
                       </div>
                     </div>

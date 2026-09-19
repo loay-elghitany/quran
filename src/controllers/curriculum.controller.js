@@ -1,6 +1,7 @@
 ﻿const path = require("path");
 const Curriculum = require("../models/curriculum.model");
 const Group = require("../models/group.model");
+const LessonProgress = require("../models/lessonProgress.model");
 
 const createCurriculum = async (req, res) => {
   try {
@@ -256,6 +257,168 @@ const advanceGroupLesson = async (req, res) => {
   }
 };
 
+const getStudentLessons = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const groups = await Group.find({ studentIds: studentId }).populate(
+      "curriculumId",
+    );
+
+    const assignedGroup =
+      groups.find((group) => group.curriculumId) || groups[0] || null;
+
+    if (!assignedGroup || !assignedGroup.curriculumId) {
+      return res.status(200).json({
+        curriculum: null,
+        currentLessonIndex: 0,
+        progressList: [],
+        message: "لا يوجد منهج مخصص لك الآن، لكنك على الطريق الصحيح! 🌟",
+      });
+    }
+
+    const curriculum = assignedGroup.curriculumId;
+    const progressList = await LessonProgress.find({
+      studentId,
+      curriculumId: curriculum._id,
+    }).lean();
+
+    res.json({
+      curriculum,
+      currentLessonIndex: assignedGroup.currentLessonIndex ?? 0,
+      progressList,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
+  }
+};
+
+const getAdminLessonProgress = async (req, res) => {
+  try {
+    const groups = await Group.find({})
+      .populate("studentIds", "firstName lastName")
+      .populate("curriculumId", "name lessons")
+      .lean();
+
+    const rows = [];
+
+    for (const group of groups) {
+      if (!group.curriculumId || !Array.isArray(group.studentIds)) {
+        continue;
+      }
+
+      const currentIndex = Math.max(0, Number(group.currentLessonIndex ?? 0));
+      const currentLesson =
+        group.curriculumId.lessons?.[currentIndex] ||
+        group.curriculumId.lessons?.[0] ||
+        null;
+
+      for (const student of group.studentIds) {
+        const progressRecords = await LessonProgress.find({
+          studentId: student._id,
+          curriculumId: group.curriculumId._id,
+        })
+          .sort({ lastWatchedAt: -1 })
+          .lean();
+
+        const matchingProgress =
+          progressRecords.find((entry) => entry.lessonIndex === currentIndex) ||
+          progressRecords[0] ||
+          null;
+        const watchPercentage = matchingProgress?.watchPercentage ?? 0;
+
+        rows.push({
+          groupId: group._id,
+          groupName: group.name,
+          studentId: student._id,
+          studentName:
+            `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+          currentLessonIndex: currentIndex,
+          currentLessonTitle: currentLesson?.title || "لا يوجد درس مخصص",
+          watchPercentage,
+          hasWatched: watchPercentage >= 75,
+          status:
+            watchPercentage >= 75
+              ? "✅ أتم المشاهدة"
+              : watchPercentage > 0
+                ? "👀 شاهد جزءاً"
+                : "⚠️ لم يشاهد بعد",
+          lastWatchedAt: matchingProgress?.lastWatchedAt || null,
+        });
+      }
+    }
+
+    res.json({ lessonProgress: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
+  }
+};
+
+const trackLessonProgress = async (req, res) => {
+  try {
+    const { curriculumId, lessonIndex, percentage } = req.body;
+
+    if (
+      !curriculumId ||
+      typeof lessonIndex !== "number" ||
+      typeof percentage !== "number"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى إرسال معرف المنهج، رقم الدرس، ونسبة المشاهدة.",
+      });
+    }
+
+    const safePercentage = Math.max(0, Math.min(100, Number(percentage) || 0));
+
+    const existingProgress = await LessonProgress.findOne({
+      studentId: req.user._id,
+      curriculumId,
+      lessonIndex,
+    });
+
+    const watchPercentage = existingProgress
+      ? Math.max(existingProgress.watchPercentage || 0, safePercentage)
+      : safePercentage;
+
+    const progress = await LessonProgress.findOneAndUpdate(
+      {
+        studentId: req.user._id,
+        curriculumId,
+        lessonIndex,
+      },
+      {
+        studentId: req.user._id,
+        curriculumId,
+        lessonIndex,
+        watchPercentage,
+        hasWatched: watchPercentage >= 75,
+        lastWatchedAt: new Date(),
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
+
+    res.json({
+      message: "تم تحديث تقدم الدرس بنجاح.",
+      progress,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً.",
+    });
+  }
+};
+
 module.exports = {
   createCurriculum,
   getCurriculums,
@@ -266,4 +429,7 @@ module.exports = {
   assignCurriculumToGroup,
   getCurrentLesson,
   advanceGroupLesson,
+  getStudentLessons,
+  getAdminLessonProgress,
+  trackLessonProgress,
 };

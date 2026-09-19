@@ -79,6 +79,11 @@ export default function PointsSystemGuide() {
               <span className="font-semibold text-quran-700">3</span> للحصول على
               نقاط التقييم.
             </li>
+            <li>
+              • أسئلة الفيديوهات الأسبوعية: الدرجة من 10 أسئلة وتمنح نقاطاً
+              مباشرة لحساب الطالب، بقيمة {s.videoQuestionPoints ?? 3} نقطة لكل
+              إجابة صحيحة.
+            </li>
           </ul>
         </div>
         <div className="rounded-3xl bg-quran-50 p-4">

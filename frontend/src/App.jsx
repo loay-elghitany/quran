@@ -11,6 +11,7 @@ import AdminGamification from "./pages/AdminGamification";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherTraining from "./pages/TeacherTraining";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentLessons from "./pages/StudentLessons";
 import ParentDashboard from "./pages/ParentDashboard";
 import Leaderboard from "./pages/Leaderboard";
 import RewardsStore from "./pages/RewardsStore";
@@ -92,6 +93,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["Student"]}>
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/lessons"
+          element={
+            <ProtectedRoute allowedRoles={["Student"]}>
+              <StudentLessons />
             </ProtectedRoute>
           }
         />

@@ -171,6 +171,33 @@ describe("POST /api/teacher/evaluations", () => {
     const updatedStudent = await User.findById(student._id);
     expect(updatedStudent.points).toBe(-15);
   });
+
+  it("should add dynamic points for correct video quiz answers", async () => {
+    const response = await request(app)
+      .post("/api/teacher/evaluations")
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .send({
+        studentId: student._id.toString(),
+        groupId: group._id.toString(),
+        attendanceStatus: "حاضر",
+        memorizationFrom: "الفاتحة",
+        memorizationTo: "البقرة",
+        revisionFrom: "آل عمران",
+        revisionTo: "النساء",
+        mistakes: 0,
+        grade: "10",
+        videoQuestionsCorrect: 4,
+        notes: "أسئلة فيديو",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.evaluation.videoQuestionsCorrect).toBe(4);
+    expect(response.body.evaluation.videoQuestionsPoints).toBe(12);
+    expect(response.body.evaluation.earnedPoints).toBe(62);
+
+    const updatedStudent = await User.findById(student._id);
+    expect(updatedStudent.points).toBe(62);
+  });
 });
 
 describe("GET /api/teacher/leave-requests", () => {

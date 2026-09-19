@@ -37,6 +37,7 @@ const evaluationCreateSchema = Joi.object({
   memorizationPagesCount: Joi.number().min(0).optional(),
   revisionPagesCount: Joi.number().min(0).optional(),
   mistakes: Joi.number().integer().min(0).optional(),
+  videoQuestionsCorrect: Joi.number().integer().min(0).max(10).optional(),
   grade: Joi.alternatives()
     .try(
       Joi.number().integer().min(1).max(10),

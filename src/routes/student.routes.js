@@ -12,6 +12,10 @@ const {
   getStudentRewards,
   redeemReward,
 } = require("../controllers/reward.controller");
+const {
+  getStudentLessons,
+  trackLessonProgress,
+} = require("../controllers/curriculum.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 const roleMiddleware = require("../middlewares/role.middleware");
 const {
@@ -49,5 +53,7 @@ router.post(
 router.get("/rewards", getStudentRewards);
 router.post("/redeem", validateBody(redeemRewardSchema), redeemReward);
 router.patch("/avatar", validateBody(avatarUpdateSchema), updateStudentAvatar);
+router.get("/curriculum/student-lessons", getStudentLessons);
+router.post("/curriculum/student-lessons/track", trackLessonProgress);
 
 module.exports = router;

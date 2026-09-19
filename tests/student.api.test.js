@@ -5,6 +5,8 @@ const jwt = require("jsonwebtoken");
 const app = require("../src/app");
 const User = require("../src/models/user.model");
 const Group = require("../src/models/group.model");
+const Curriculum = require("../src/models/curriculum.model");
+const LessonProgress = require("../src/models/lessonProgress.model");
 const Assignment = require("../src/models/assignment.model");
 const ContentQuiz = require("../src/models/contentquiz.model");
 
@@ -159,6 +161,101 @@ describe("GET /api/student/quizzes", () => {
     expect(response.body.quizzes[0].questions[0]).toHaveProperty(
       "questionText",
     );
+  });
+});
+
+describe("GET /api/student/curriculum/student-lessons", () => {
+  it("should return the assigned curriculum and lesson progress", async () => {
+    const curriculum = new Curriculum({
+      name: "منهج الأطفال",
+      target: "student",
+      lessons: [
+        { title: "الدرس الأول", videoUrl: "https://youtu.be/abc123xyz12" },
+        { title: "الدرس الثاني", videoUrl: "https://youtu.be/def456uvw34" },
+      ],
+    });
+    await curriculum.save();
+
+    const group = new Group({
+      name: "Test Group",
+      teacherId: teacher._id,
+      studentIds: [student._id],
+      curriculumId: curriculum._id,
+      currentLessonIndex: 0,
+    });
+    await group.save();
+
+    student.assignedGroups = [group._id];
+    await student.save();
+
+    await LessonProgress.create({
+      studentId: student._id,
+      curriculumId: curriculum._id,
+      lessonIndex: 0,
+      watchPercentage: 80,
+      hasWatched: true,
+    });
+
+    const response = await request(app)
+      .get("/api/student/curriculum/student-lessons")
+      .set("Authorization", `Bearer ${studentToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.curriculum).toBeTruthy();
+    expect(response.body.currentLessonIndex).toBe(0);
+    expect(response.body.progressList).toHaveLength(1);
+    expect(response.body.progressList[0].lessonIndex).toBe(0);
+  });
+});
+
+describe("POST /api/student/curriculum/student-lessons/track", () => {
+  it("should upsert lesson progress and keep the best watched percentage", async () => {
+    const curriculum = new Curriculum({
+      name: "منهج الأطفال",
+      target: "student",
+      lessons: [
+        { title: "درس تجريبي", videoUrl: "https://youtu.be/test123abc4" },
+      ],
+    });
+    await curriculum.save();
+
+    const group = new Group({
+      name: "Test Group",
+      teacherId: teacher._id,
+      studentIds: [student._id],
+      curriculumId: curriculum._id,
+      currentLessonIndex: 0,
+    });
+    await group.save();
+
+    student.assignedGroups = [group._id];
+    await student.save();
+
+    const firstTrack = await request(app)
+      .post("/api/student/curriculum/student-lessons/track")
+      .set("Authorization", `Bearer ${studentToken}`)
+      .send({
+        curriculumId: curriculum._id.toString(),
+        lessonIndex: 0,
+        percentage: 60,
+      });
+
+    expect(firstTrack.status).toBe(200);
+    expect(firstTrack.body.progress.watchPercentage).toBe(60);
+    expect(firstTrack.body.progress.hasWatched).toBe(false);
+
+    const secondTrack = await request(app)
+      .post("/api/student/curriculum/student-lessons/track")
+      .set("Authorization", `Bearer ${studentToken}`)
+      .send({
+        curriculumId: curriculum._id.toString(),
+        lessonIndex: 0,
+        percentage: 90,
+      });
+
+    expect(secondTrack.status).toBe(200);
+    expect(secondTrack.body.progress.watchPercentage).toBe(90);
+    expect(secondTrack.body.progress.hasWatched).toBe(true);
   });
 });
 

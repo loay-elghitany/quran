@@ -35,6 +35,7 @@ const {
   deleteCurriculum,
   uploadLessonPdf,
   assignCurriculumToGroup,
+  getAdminLessonProgress,
 } = require("../controllers/curriculum.controller");
 const {
   createBadge,
@@ -148,6 +149,7 @@ router.put(
 
 router.post("/curriculums", createCurriculum);
 router.get("/curriculums", getCurriculums);
+router.get("/curriculum/lesson-progress", getAdminLessonProgress);
 router.get(
   "/curriculums/:id",
   validateParams(idParamsSchema),

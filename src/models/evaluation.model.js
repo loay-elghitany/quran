@@ -38,6 +38,17 @@ const EvaluationSchema = new Schema({
     type: Number,
     default: 0,
   },
+  videoQuestionsCorrect: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 10,
+  },
+  videoQuestionsPoints: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   memorizationPagesCount: {
     type: Number,
     default: 0,

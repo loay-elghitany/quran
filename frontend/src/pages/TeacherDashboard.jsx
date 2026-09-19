@@ -56,10 +56,35 @@ const defaultEvaluation = {
   revisionFrom: "",
   revisionTo: "",
   mistakes: 0,
+  videoQuestionsCorrect: 0,
   grade: "10",
   notes: "",
   memorizationPagesCount: 0,
   revisionPagesCount: 0,
+};
+
+const getVideoStatusBadge = (progress) => {
+  const percentage = Number(progress?.watchPercentage || 0);
+  const hasWatched = Boolean(progress?.hasWatched) || percentage >= 75;
+
+  if (hasWatched) {
+    return {
+      label: `🎬 تم مشاهدة الدرس: ${Math.round(percentage)}%`,
+      className: "border-emerald-200 bg-emerald-100 text-emerald-800 shadow-sm",
+    };
+  }
+
+  if (percentage > 0) {
+    return {
+      label: `🎬 تم مشاهدة ${Math.round(percentage)}%`,
+      className: "border-amber-200 bg-amber-100 text-amber-800 shadow-sm",
+    };
+  }
+
+  return {
+    label: "⚠️ لم يتم مشاهدة الفيديو بعد",
+    className: "border-amber-200 bg-amber-50 text-amber-800 shadow-sm",
+  };
 };
 
 export default function TeacherDashboard() {
@@ -96,6 +121,7 @@ export default function TeacherDashboard() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyStudent, setHistoryStudent] = useState(null);
   const [historyItems, setHistoryItems] = useState([]);
+  const [studentLessonProgress, setStudentLessonProgress] = useState({});
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [badges, setBadges] = useState([]);
@@ -143,13 +169,36 @@ export default function TeacherDashboard() {
     fetchGroups();
   }, []);
 
-  const openEvaluationModal = (student, group) => {
+  const fetchStudentLessonProgress = async (studentId) => {
+    if (!studentId) return null;
+
+    try {
+      const response = await api.get(
+        `/teacher/students/${studentId}/lesson-progress`,
+      );
+      const progress = response.data || {};
+      setStudentLessonProgress((prev) => ({
+        ...prev,
+        [studentId]: progress,
+      }));
+      return progress;
+    } catch (error) {
+      console.error("فشل تحميل تقدم فيديو الطالب:", error);
+      return null;
+    }
+  };
+
+  const openEvaluationModal = async (student, group) => {
     cleanupRecording();
     setSelectedStudent(student);
     setSelectedGroup(group);
     setEvaluation(defaultEvaluation);
     setModalOpen(true);
     setStatusMessage("");
+
+    if (student?._id) {
+      await fetchStudentLessonProgress(student._id);
+    }
   };
 
   const closeModal = () => {
@@ -328,13 +377,29 @@ export default function TeacherDashboard() {
     setHistoryLoading(true);
 
     try {
-      // Use embedded evaluations if available to avoid extra request
+      let evaluations = [];
+
       if (student?.evaluations && student.evaluations.length > 0) {
-        setHistoryItems(student.evaluations || []);
+        evaluations = student.evaluations || [];
       } else {
         const response = await api.get(`/teacher/evaluations/${student._id}`);
-        setHistoryItems(response.data?.evaluations || []);
+        evaluations = response.data?.evaluations || [];
       }
+
+      const progress = await fetchStudentLessonProgress(student._id);
+      if (progress) {
+        evaluations = evaluations.map((item) => ({
+          ...item,
+          videoCompletion: {
+            hasWatched: progress.hasWatched,
+            watchPercentage: progress.watchPercentage,
+            lessonTitle: progress.lessonTitle,
+            message: progress.message,
+          },
+        }));
+      }
+
+      setHistoryItems(evaluations);
     } catch (error) {
       console.error("فشل تحميل سجل التقييم:", error);
       setHistoryError(
@@ -517,6 +582,10 @@ export default function TeacherDashboard() {
       formData.append("memorizationPagesCount", memoPages);
       formData.append("revisionPagesCount", revPages);
       formData.append("mistakes", Number(String(evaluation.mistakes || 0)));
+      formData.append(
+        "videoQuestionsCorrect",
+        Number(evaluation.videoQuestionsCorrect || 0),
+      );
       formData.append("grade", evaluation.grade);
       formData.append("notes", evaluation.notes);
 
@@ -804,9 +873,24 @@ export default function TeacherDashboard() {
             <div className="flex items-center justify-between border-b border-slate-200 bg-quran-600 px-6 py-5 text-white">
               <div>
                 <p className="text-sm">إضافة تقييم يومي</p>
-                <h3 className="text-xl font-semibold">
-                  {selectedStudent.firstName} {selectedStudent.lastName}
-                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-xl font-semibold">
+                    {selectedStudent.firstName} {selectedStudent.lastName}
+                  </h3>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${
+                      getVideoStatusBadge(
+                        studentLessonProgress[selectedStudent._id] || {},
+                      ).className
+                    }`}
+                  >
+                    {
+                      getVideoStatusBadge(
+                        studentLessonProgress[selectedStudent._id] || {},
+                      ).label
+                    }
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
@@ -935,6 +1019,30 @@ export default function TeacherDashboard() {
                       className={evaluationFieldClass}
                     />
                   </label>
+                  <label className="block text-sm text-slate-700">
+                    عدد إجابات أسئلة الفيديو الصحيحة (من 10)
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={evaluation.videoQuestionsCorrect}
+                      onChange={(e) =>
+                        handleEvaluationChange(
+                          "videoQuestionsCorrect",
+                          Math.min(10, Math.max(0, Number(e.target.value))),
+                        )
+                      }
+                      className={evaluationFieldClass}
+                      placeholder="0 - 10"
+                    />
+                    <span className="mt-1 block text-xs text-quran-600 font-medium">
+                      * يحصل الطالب على 3 نقاط (أو حسب الإعدادات) لكل إجابة
+                      صحيحة.
+                    </span>
+                  </label>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
                   <label className="block text-sm text-slate-700">
                     عدد صفحات الحفظ الجديد
                     <input
@@ -1439,6 +1547,16 @@ export default function TeacherDashboard() {
                             {formatDate(item.date)}
                           </p>
                         </div>
+                        {item.videoCompletion && (
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${
+                              getVideoStatusBadge(item.videoCompletion)
+                                .className
+                            }`}
+                          >
+                            {getVideoStatusBadge(item.videoCompletion).label}
+                          </span>
+                        )}
                         <div className="flex items-start gap-2">
                           <button
                             type="button"
@@ -1468,6 +1586,19 @@ export default function TeacherDashboard() {
                           </div>
                         </div>
                       </div>
+                      <div className="mt-4 rounded-3xl bg-white p-4 text-sm text-slate-700 shadow-sm">
+                        <p className="font-semibold text-slate-800">
+                          أسئلة الفيديو
+                        </p>
+                        <p className="mt-1">
+                          🎥 أسئلة الفيديو: {item.videoQuestionsCorrect ?? 0} /
+                          10 (
+                          {item.videoQuestionsPoints ??
+                            (item.videoQuestionsCorrect ?? 0) * 3}{" "}
+                          نقطة)
+                        </p>
+                      </div>
+
                       {item.attendance === "غائب بعذر" ||
                       item.attendance === "غائب بدون عذر" ? (
                         <div
