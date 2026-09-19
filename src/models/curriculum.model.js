@@ -41,6 +41,10 @@ const CurriculumSchema = new Schema({
     type: [LessonSchema],
     default: [],
   },
+  isGlobal: {
+    type: Boolean,
+    default: true,
+  },
   createdAt: {
     type: Date,
     default: () => new Date(),

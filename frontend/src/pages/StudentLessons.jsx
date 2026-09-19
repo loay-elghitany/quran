@@ -352,6 +352,9 @@ export default function StudentLessons() {
     return Math.round(value);
   };
 
+  const lessonCountLabel =
+    lessons.length === 1 ? "درس واحد" : `${lessons.length} دروس`;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-emerald-50">
@@ -410,7 +413,7 @@ export default function StudentLessons() {
                   خريطة الطريق
                 </h2>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                  {lessons.length === 1 ? "درس واحد" : `${lessons.length} دروس`}
+                  {lessonCountLabel}
                 </span>
               </div>
 

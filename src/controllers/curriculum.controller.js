@@ -5,13 +5,14 @@ const LessonProgress = require("../models/lessonProgress.model");
 
 const createCurriculum = async (req, res) => {
   try {
-    const { name, description, lessons, target } = req.body;
+    const { name, description, lessons, target, isGlobal } = req.body;
 
     const curriculum = new Curriculum({
       name,
       description,
       target: target === "teacher" ? "teacher" : "student",
       lessons: Array.isArray(lessons) ? lessons : [],
+      isGlobal: isGlobal !== false,
     });
 
     const saved = await curriculum.save();
@@ -62,7 +63,7 @@ const getCurriculumById = async (req, res) => {
 const updateCurriculum = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, lessons, target } = req.body;
+    const { name, description, lessons, target, isGlobal } = req.body;
 
     const curriculum = await Curriculum.findById(id);
     if (!curriculum) {
@@ -78,6 +79,9 @@ const updateCurriculum = async (req, res) => {
     }
     if (Array.isArray(lessons)) {
       curriculum.lessons = lessons;
+    }
+    if (typeof isGlobal === "boolean") {
+      curriculum.isGlobal = isGlobal;
     }
 
     const updated = await curriculum.save();
@@ -266,9 +270,25 @@ const getStudentLessons = async (req, res) => {
     );
 
     const assignedGroup =
-      groups.find((group) => group.curriculumId) || groups[0] || null;
+      groups.find(
+        (group) =>
+          group.curriculumId && group.curriculumId.target === "student",
+      ) ||
+      groups.find((group) => group.curriculumId) ||
+      null;
 
-    if (!assignedGroup || !assignedGroup.curriculumId) {
+    let curriculum = assignedGroup?.curriculumId || null;
+
+    if (!curriculum) {
+      curriculum = await Curriculum.findOne({
+        target: "student",
+        isGlobal: true,
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+    }
+
+    if (!curriculum) {
       return res.status(200).json({
         curriculum: null,
         currentLessonIndex: 0,
@@ -277,7 +297,6 @@ const getStudentLessons = async (req, res) => {
       });
     }
 
-    const curriculum = assignedGroup.curriculumId;
     const progressList = await LessonProgress.find({
       studentId,
       curriculumId: curriculum._id,
@@ -285,7 +304,9 @@ const getStudentLessons = async (req, res) => {
 
     res.json({
       curriculum,
-      currentLessonIndex: assignedGroup.currentLessonIndex ?? 0,
+      currentLessonIndex: assignedGroup
+        ? (assignedGroup.currentLessonIndex ?? 0)
+        : 0,
       progressList,
     });
   } catch (error) {

@@ -206,6 +206,28 @@ describe("GET /api/student/curriculum/student-lessons", () => {
     expect(response.body.progressList).toHaveLength(1);
     expect(response.body.progressList[0].lessonIndex).toBe(0);
   });
+
+  it("should return a global curriculum when the student has no assigned group curriculum", async () => {
+    const curriculum = new Curriculum({
+      name: "منهج عام",
+      target: "student",
+      isGlobal: true,
+      lessons: [
+        { title: "درس عام أول", videoUrl: "https://youtu.be/global123abc1" },
+      ],
+    });
+    await curriculum.save();
+
+    const response = await request(app)
+      .get("/api/student/curriculum/student-lessons")
+      .set("Authorization", `Bearer ${studentToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.curriculum).toBeTruthy();
+    expect(response.body.curriculum.name).toBe("منهج عام");
+    expect(response.body.curriculum.isGlobal).toBe(true);
+    expect(response.body.progressList).toEqual([]);
+  });
 });
 
 describe("POST /api/student/curriculum/student-lessons/track", () => {

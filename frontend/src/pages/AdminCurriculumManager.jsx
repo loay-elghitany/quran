@@ -10,6 +10,7 @@ const initialCurriculum = {
   description: "",
   lessons: [],
   target: "student",
+  isGlobal: true,
 };
 
 export default function AdminCurriculumManager() {
@@ -100,6 +101,7 @@ export default function AdminCurriculumManager() {
       description: curriculum.description || "",
       lessons: curriculum.lessons || [],
       target: curriculum.target || "student",
+      isGlobal: curriculum.isGlobal !== false,
     });
     setSelectedLessonIndex(null);
     setLessonFile(null);
@@ -148,6 +150,7 @@ export default function AdminCurriculumManager() {
         description: activeCurriculum.description,
         target: activeCurriculum.target || "student",
         lessons: activeCurriculum.lessons,
+        isGlobal: activeCurriculum.isGlobal !== false,
       };
 
       if (activeCurriculum._id) {
@@ -252,6 +255,40 @@ export default function AdminCurriculumManager() {
                   </select>
                 </label>
               </div>
+
+              {activeCurriculum.target === "student" && (
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">
+                    حالة visibility المنهج
+                  </p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-emerald-200 bg-white p-3 text-sm text-slate-700">
+                      <span>منهج عام لجميع طلاب الموقع مباشرة</span>
+                      <input
+                        type="radio"
+                        name="curriculum-visibility"
+                        checked={activeCurriculum.isGlobal === true}
+                        onChange={() =>
+                          handleCurriculumChange("isGlobal", true)
+                        }
+                        className="h-4 w-4 accent-emerald-600"
+                      />
+                    </label>
+                    <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-amber-200 bg-white p-3 text-sm text-slate-700">
+                      <span>منهج خاص بمجموعة محددة</span>
+                      <input
+                        type="radio"
+                        name="curriculum-visibility"
+                        checked={activeCurriculum.isGlobal === false}
+                        onChange={() =>
+                          handleCurriculumChange("isGlobal", false)
+                        }
+                        className="h-4 w-4 accent-amber-600"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-4">
@@ -481,13 +518,26 @@ export default function AdminCurriculumManager() {
                         {curriculum.description || "بدون وصف"}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => editCurriculum(curriculum)}
-                      className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      تعديل المنهج
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${
+                          curriculum.isGlobal === false
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        {curriculum.isGlobal === false
+                          ? "مخصص لمجموعة"
+                          : "عام لجميع الطلاب"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => editCurriculum(curriculum)}
+                        className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        تعديل المنهج
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-3xl bg-white p-4 shadow-sm">
