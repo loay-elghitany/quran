@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import { getApiErrorMessage } from "../utils/apiError";
 import Navbar from "../components/Navbar";
@@ -70,8 +70,57 @@ export default function AdminGamification() {
   const [targetedPointsAmount, setTargetedPointsAmount] = useState("");
   const [selectedPointsStudentId, setSelectedPointsStudentId] = useState("");
   const [studentsList, setStudentsList] = useState([]);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [grantStatusMessage, setGrantStatusMessage] = useState("");
+
+  const filteredStudents = useMemo(() => {
+    const query = studentSearchQuery.trim().toLowerCase();
+    if (!query) return studentsList;
+
+    return studentsList.filter((student) => {
+      const fullName = `${student?.firstName || ""} ${student?.lastName || ""}`
+        .trim()
+        .toLowerCase();
+      return fullName.includes(query);
+    });
+  }, [studentSearchQuery, studentsList]);
+
+  const visibleStudents = useMemo(() => {
+    if (!selectedPointsStudentId) return filteredStudents;
+
+    const selectedStudent = studentsList.find(
+      (student) => student._id === selectedPointsStudentId,
+    );
+
+    if (!selectedStudent) return filteredStudents;
+
+    if (
+      filteredStudents.some((student) => student._id === selectedStudent._id)
+    ) {
+      return filteredStudents;
+    }
+
+    return [selectedStudent, ...filteredStudents];
+  }, [filteredStudents, selectedPointsStudentId, studentsList]);
+
+  const handleStudentSearchChange = (value) => {
+    setStudentSearchQuery(value);
+
+    const query = value.trim().toLowerCase();
+    if (!query) return;
+
+    const matches = studentsList.filter((student) => {
+      const fullName = `${student?.firstName || ""} ${student?.lastName || ""}`
+        .trim()
+        .toLowerCase();
+      return fullName.includes(query);
+    });
+
+    if (matches.length === 1) {
+      setSelectedPointsStudentId(matches[0]._id);
+    }
+  };
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -1041,6 +1090,19 @@ export default function AdminGamification() {
                     منح خاص لطالب محدد
                   </h3>
                   <label className="block text-sm text-slate-700">
+                    البحث عن الطالب
+                    <input
+                      type="text"
+                      value={studentSearchQuery}
+                      onChange={(e) =>
+                        handleStudentSearchChange(e.target.value)
+                      }
+                      className="mt-2 w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                      placeholder="ابحث عن اسم الطالب..."
+                      disabled={studentsLoading}
+                    />
+                  </label>
+                  <label className="block mt-4 text-sm text-slate-700">
                     اختيار الطالب
                     <select
                       value={selectedPointsStudentId}
@@ -1053,9 +1115,11 @@ export default function AdminGamification() {
                       <option value="" disabled={studentsLoading}>
                         {studentsLoading
                           ? "جارٍ تحميل الطلاب..."
-                          : "-- اختر طالبًا --"}
+                          : filteredStudents.length > 0
+                            ? "-- اختر طالبًا --"
+                            : "لا توجد نتائج مطابقة"}
                       </option>
-                      {studentsList.map((student) => (
+                      {visibleStudents.map((student) => (
                         <option key={student._id} value={student._id}>
                           {student.firstName} {student.lastName} (النقاط
                           الحالية: {student.points || 0})
