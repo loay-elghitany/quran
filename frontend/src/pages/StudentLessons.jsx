@@ -410,7 +410,13 @@ export default function StudentLessons() {
     ) {
       setSelectedLessonIndex(currentLessonIndex);
     }
-  }, [curriculum, lessons, selectedLessonIndex, currentLessonIndex, isGlobalCurriculum]);
+  }, [
+    curriculum,
+    lessons,
+    selectedLessonIndex,
+    currentLessonIndex,
+    isGlobalCurriculum,
+  ]);
 
   const getLessonState = (index) => {
     if (isGlobalCurriculum && index > currentLessonIndex) {
