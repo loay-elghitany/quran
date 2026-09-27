@@ -118,6 +118,7 @@ export default function StudentLessons() {
   }, [curriculum]);
 
   const lessons = curriculum?.lessons || [];
+  const isGlobalCurriculum = Boolean(curriculum?.isGlobal);
   const progressMap = useMemo(() => {
     const map = new Map();
     (curriculum?.progressList || []).forEach((item) => {
@@ -131,6 +132,8 @@ export default function StudentLessons() {
   }, [curriculum, localProgressMap]);
 
   const selectedLesson = lessons[selectedLessonIndex] || null;
+  const isLessonAccessible = (index) =>
+    isGlobalCurriculum || index <= currentLessonIndex;
 
   const clearProgressTracking = () => {
     if (progressIntervalRef.current) {
@@ -402,13 +405,17 @@ export default function StudentLessons() {
     if (
       curriculum &&
       lessons.length > 0 &&
+      !isGlobalCurriculum &&
       selectedLessonIndex > currentLessonIndex
     ) {
       setSelectedLessonIndex(currentLessonIndex);
     }
-  }, [curriculum, lessons, selectedLessonIndex, currentLessonIndex]);
+  }, [curriculum, lessons, selectedLessonIndex, currentLessonIndex, isGlobalCurriculum]);
 
   const getLessonState = (index) => {
+    if (isGlobalCurriculum && index > currentLessonIndex) {
+      return { label: "متاح", tone: "amber", icon: "▶️" };
+    }
     if (index < currentLessonIndex)
       return { label: "مكتمل", tone: "green", icon: "✅" };
     if (index === currentLessonIndex)
@@ -489,7 +496,7 @@ export default function StudentLessons() {
               <div className="space-y-3">
                 {lessons.map((lesson, index) => {
                   const state = getLessonState(index);
-                  const isUnlocked = index <= currentLessonIndex;
+                  const isUnlocked = isLessonAccessible(index);
                   const isSelected = selectedLessonIndex === index;
                   const progressValue = getProgressValue(index);
                   const hasWatched =
