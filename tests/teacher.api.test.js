@@ -7,6 +7,7 @@ const User = require("../src/models/user.model");
 const Group = require("../src/models/group.model");
 const Assignment = require("../src/models/assignment.model");
 const LeaveRequest = require("../src/models/leaverequest.model");
+const Evaluation = require("../src/models/evaluation.model");
 
 jest.mock("../src/services/notification.service");
 
@@ -84,14 +85,32 @@ afterAll(async () => {
 });
 
 describe("GET /api/teacher/students", () => {
-  it("should return students assigned to the teacher", async () => {
+  it("should return every student in the academy", async () => {
+    const otherTeacher = await User.create({
+      firstName: "Other",
+      lastName: "Teacher",
+      email: "other-teacher@example.com",
+      password: "teacherpass123",
+      role: "Teacher",
+    });
+    const unassignedStudent = await User.create({
+      firstName: "Independent",
+      lastName: "Student",
+      email: "independent@example.com",
+      password: "studentpass123",
+      role: "Student",
+      teacherId: otherTeacher._id,
+    });
+
     const response = await request(app)
       .get("/api/teacher/students")
       .set("Authorization", `Bearer ${teacherToken}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.students).toHaveLength(1);
-    expect(response.body.students[0].firstName).toBe("Student");
+    expect(response.body.students).toHaveLength(2);
+    expect(response.body.students.map((item) => item._id)).toContain(
+      unassignedStudent._id.toString(),
+    );
   });
 });
 
@@ -124,6 +143,27 @@ describe("POST /api/teacher/assignments", () => {
 });
 
 describe("POST /api/teacher/evaluations", () => {
+  it("should save an evaluation without a group and retain its teacher", async () => {
+    const response = await request(app)
+      .post("/api/teacher/evaluations")
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .send({
+        studentId: student._id.toString(),
+        attendanceStatus: "غائب بعذر",
+        grade: "10",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.evaluation.groupId).toBeNull();
+    expect(response.body.evaluation.teacherId).toBe(teacher._id.toString());
+
+    const savedEvaluation = await Evaluation.findById(
+      response.body.evaluation._id,
+    );
+    expect(savedEvaluation.teacherId.toString()).toBe(teacher._id.toString());
+    expect(savedEvaluation.groupId).toBeNull();
+  });
+
   it("should create an evaluation with 0 points for excused absences", async () => {
     const response = await request(app)
       .post("/api/teacher/evaluations")

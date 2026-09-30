@@ -16,7 +16,8 @@ const EvaluationSchema = new Schema({
   groupId: {
     type: Schema.Types.ObjectId,
     ref: "Group",
-    required: [true, "Group reference is required"],
+    required: false,
+    default: null,
   },
   date: {
     type: Date,

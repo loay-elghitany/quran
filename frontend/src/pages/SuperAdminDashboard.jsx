@@ -13,6 +13,10 @@ export default function SuperAdminDashboard() {
   const [students, setStudents] = useState([]);
   const [parents, setParents] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [adminEvaluations, setAdminEvaluations] = useState([]);
+  const [evaluationSearchQuery, setEvaluationSearchQuery] = useState("");
+  const [evaluationsLoading, setEvaluationsLoading] = useState(false);
+  const [evaluationsError, setEvaluationsError] = useState("");
   const [userType, setUserType] = useState("Teacher");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -42,6 +46,7 @@ export default function SuperAdminDashboard() {
     { key: "students", label: "الطلاب" },
     { key: "parents", label: "أولياء الأمور" },
     { key: "groups", label: "المجموعات" },
+    { key: "evaluations", label: "سجل التقييمات الشامل" },
     { key: "settings", label: "إعدادات النقاط" },
   ];
 
@@ -126,6 +131,35 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     setSelectedGroupStudents([]);
   }, [selectedGroupTeacher]);
+
+  useEffect(() => {
+    if (activeTab !== "evaluations") return undefined;
+
+    let cancelled = false;
+    setEvaluationsLoading(true);
+    setEvaluationsError("");
+    api
+      .get("/admin/evaluations")
+      .then((response) => {
+        if (!cancelled) {
+          setAdminEvaluations(response.data.evaluations || []);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setEvaluationsError(
+            getApiErrorMessage(error, "تعذر تحميل سجل التقييمات."),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setEvaluationsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
 
   const fetchLessonWatchTracker = async () => {
     try {
@@ -1151,6 +1185,14 @@ export default function SuperAdminDashboard() {
     const full =
       `${parent.firstName} ${parent.lastName} ${parent.email}`.toLowerCase();
     return full.includes(parentEditSearchQuery.trim().toLowerCase());
+  });
+
+  const filteredEvaluations = adminEvaluations.filter((item) => {
+    const query = evaluationSearchQuery.trim().toLowerCase();
+    if (!query) return true;
+    const studentName = `${item.studentId?.firstName || ""} ${item.studentId?.lastName || ""} ${item.studentId?.email || ""}`;
+    const teacherName = `${item.teacherId?.firstName || ""} ${item.teacherId?.lastName || ""} ${item.teacherId?.email || ""}`;
+    return `${studentName} ${teacherName}`.toLowerCase().includes(query);
   });
 
   const showUserCreationPanel = ["teachers", "students", "parents"].includes(
@@ -2529,6 +2571,121 @@ export default function SuperAdminDashboard() {
                 ) : null}
               </form>
             </section>
+
+            {activeTab === "evaluations" && (
+              <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-slate-900">
+                      سجل التقييمات الشامل
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {filteredEvaluations.length} تقييم
+                    </p>
+                  </div>
+                  <input
+                    type="search"
+                    value={evaluationSearchQuery}
+                    onChange={(event) =>
+                      setEvaluationSearchQuery(event.target.value)
+                    }
+                    placeholder="ابحث باسم الطالب أو المعلم..."
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm md:max-w-sm"
+                  />
+                </div>
+
+                {evaluationsLoading ? (
+                  <p className="py-10 text-center text-sm text-slate-500">
+                    جاري تحميل سجل التقييمات...
+                  </p>
+                ) : evaluationsError ? (
+                  <p className="rounded-2xl bg-rose-50 p-5 text-sm text-rose-700">
+                    {evaluationsError}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-600">
+                          <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                            اسم الطالب
+                          </th>
+                          <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                            المعلم المُقيِّم
+                          </th>
+                          <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                            تاريخ التقييم
+                          </th>
+                          <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                            الدرجة والحضور
+                          </th>
+                          <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                            الحفظ والمراجعة
+                          </th>
+                          <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                            أسئلة الفيديو
+                          </th>
+                          <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                            إجمالي النقاط المكتسبة
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {filteredEvaluations.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan="7"
+                              className="px-4 py-8 text-center text-slate-500"
+                            >
+                              لا توجد تقييمات مطابقة.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredEvaluations.map((item) => (
+                            <tr key={item._id} className="text-slate-700">
+                              <td className="whitespace-nowrap px-4 py-3 font-medium">
+                                {item.studentId
+                                  ? `${item.studentId.firstName} ${item.studentId.lastName}`
+                                  : "طالب محذوف"}
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-3">
+                                {item.teacherId
+                                  ? `${item.teacherId.firstName} ${item.teacherId.lastName}`
+                                  : "معلم"}
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-3">
+                                {item.date
+                                  ? new Date(item.date).toLocaleString("ar-EG")
+                                  : "-"}
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-3">
+                                {item.grade ?? "-"} / {item.attendance || "-"}
+                              </td>
+                              <td className="min-w-52 px-4 py-3">
+                                <div>
+                                  الحفظ: {item.newMemorization?.from || "-"} -{" "}
+                                  {item.newMemorization?.to || "-"}
+                                </div>
+                                <div>
+                                  المراجعة: {item.revision?.from || "-"} -{" "}
+                                  {item.revision?.to || "-"}
+                                </div>
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-3">
+                                {item.videoQuestionsCorrect ?? 0} / 10
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-3 font-semibold">
+                                {item.earnedPoints ?? 0}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* ========== Points System Management Section ========== */}
             {activeTab === "settings" && (

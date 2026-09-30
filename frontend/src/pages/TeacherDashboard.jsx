@@ -89,11 +89,11 @@ const getVideoStatusBadge = (progress) => {
 
 export default function TeacherDashboard() {
   const [user, setUser] = useState(null);
-  const [groups, setGroups] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [selectedGroup, setSelectedGroup] = useState(null);
   const [evaluation, setEvaluation] = useState(defaultEvaluation);
   const [statusMessage, setStatusMessage] = useState("");
   const [toastMessage, setToastMessage] = useState("");
@@ -108,9 +108,6 @@ export default function TeacherDashboard() {
   const [ticketDescription, setTicketDescription] = useState("");
   const [ticketAnonymous, setTicketAnonymous] = useState(false);
   const [ticketSubmitLoading, setTicketSubmitLoading] = useState(false);
-  const [currentLessons, setCurrentLessons] = useState({});
-  const [groupLessonLoading, setGroupLessonLoading] = useState({});
-  const [lessonActionMessage, setLessonActionMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordingError, setRecordingError] = useState("");
@@ -153,20 +150,19 @@ export default function TeacherDashboard() {
   }, []);
 
   useEffect(() => {
-    const fetchGroups = async () => {
+    const fetchStudents = async () => {
       try {
-        // Prefer the new endpoint that includes evaluations per student
         const response = await api.get("/teacher/students-with-evaluations");
-        setGroups(response.data.groups || []);
+        setStudents(response.data.students || []);
       } catch (error) {
         console.error("فشل تحميل بيانات اللوحة:", error);
-        setToastMessage(getApiErrorMessage(error, "فشل تحميل بيانات الحلقة."));
+        setToastMessage(getApiErrorMessage(error, "فشل تحميل قائمة الطلاب."));
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGroups();
+    fetchStudents();
   }, []);
 
   const fetchStudentLessonProgress = async (studentId) => {
@@ -188,10 +184,9 @@ export default function TeacherDashboard() {
     }
   };
 
-  const openEvaluationModal = async (student, group) => {
+  const openEvaluationModal = async (student) => {
     cleanupRecording();
     setSelectedStudent(student);
-    setSelectedGroup(group);
     setEvaluation(defaultEvaluation);
     setModalOpen(true);
     setStatusMessage("");
@@ -205,7 +200,6 @@ export default function TeacherDashboard() {
     cleanupRecording();
     setModalOpen(false);
     setSelectedStudent(null);
-    setSelectedGroup(null);
   };
 
   const cleanupRecording = () => {
@@ -422,10 +416,10 @@ export default function TeacherDashboard() {
       setHistoryItems((prev) => prev.filter((it) => it._id !== evaluationId));
       setToastMessage("تم حذف التقييم وتحديث رصيد نقاط الطالب بنجاح.");
 
-      // Refresh groups to reflect updated points in the UI
+      // Refresh student points and evaluation history.
       try {
         const response = await api.get("/teacher/students-with-evaluations");
-        setGroups(response.data.groups || []);
+        setStudents(response.data.students || []);
       } catch (error) {
         console.error("Failed to save evaluation:", error);
         const msg = getApiErrorMessage(
@@ -442,31 +436,6 @@ export default function TeacherDashboard() {
       setTimeout(() => setToastMessage(""), 4000);
     }
   };
-
-  const fetchCurrentLessons = async () => {
-    const lessonsByGroup = {};
-    await Promise.all(
-      groups.map(async (group) => {
-        try {
-          const response = await api.get(`/groups/${group._id}/current-lesson`);
-          lessonsByGroup[group._id] = response.data;
-        } catch (error) {
-          lessonsByGroup[group._id] = {
-            group,
-            lesson: null,
-            message: "فشل جلب بيانات الدرس لهذه الحلقة.",
-          };
-        }
-      }),
-    );
-    setCurrentLessons(lessonsByGroup);
-  };
-
-  useEffect(() => {
-    if (groups.length > 0) {
-      fetchCurrentLessons();
-    }
-  }, [groups]);
 
   const loadBadges = async () => {
     try {
@@ -509,42 +478,11 @@ export default function TeacherDashboard() {
       loadBadges();
       setTimeout(() => setAwardMessage(""), 4000);
       closeBadgeModal();
-      const response = await api.get("/teacher/dashboard");
-      setGroups(response.data.groups || []);
+      const response = await api.get("/teacher/students-with-evaluations");
+      setStudents(response.data.students || []);
     } catch (error) {
       console.error("فشل منح الوسام:", error);
       setAwardMessage(getApiErrorMessage(error, "حدث خطأ أثناء منح الوسام."));
-    }
-  };
-
-  const handleAdvanceLesson = async (groupId) => {
-    setGroupLessonLoading((prev) => ({ ...prev, [groupId]: true }));
-    setLessonActionMessage("");
-
-    try {
-      const response = await api.post(
-        `/teacher/groups/${groupId}/advance-lesson`,
-      );
-      setCurrentLessons((prev) => ({
-        ...prev,
-        [groupId]: {
-          ...prev[groupId],
-          group: response.data.group,
-          lesson: response.data.lesson,
-          currentLessonIndex: response.data.currentLessonIndex,
-          totalLessons: response.data.totalLessons,
-          curriculum:
-            prev[groupId]?.curriculum || response.data.group.curriculumId,
-        },
-      }));
-      setLessonActionMessage("تم الانتقال إلى الدرس التالي بنجاح.");
-    } catch (error) {
-      console.error("Failed to advance lesson:", error);
-      setLessonActionMessage(
-        getApiErrorMessage(error, "فشل الانتقال إلى الدرس التالي."),
-      );
-    } finally {
-      setGroupLessonLoading((prev) => ({ ...prev, [groupId]: false }));
     }
   };
 
@@ -562,8 +500,8 @@ export default function TeacherDashboard() {
       return;
     }
 
-    if (!selectedStudent || !selectedGroup) {
-      setToastMessage("يرجى اختيار طالب ومجموعة قبل حفظ التقييم.");
+    if (!selectedStudent) {
+      setToastMessage("يرجى اختيار طالب قبل حفظ التقييم.");
       return;
     }
 
@@ -571,46 +509,71 @@ export default function TeacherDashboard() {
     try {
       const memoPages = Number(String(evaluation.memorizationPagesCount || 0));
       const revPages = Number(String(evaluation.revisionPagesCount || 0));
-      const formData = new FormData();
-      formData.append("studentId", selectedStudent._id);
-      formData.append("groupId", selectedGroup._id);
-      formData.append("attendanceStatus", evaluation.attendanceStatus);
-      formData.append("memorizationFrom", evaluation.memorizationFrom);
-      formData.append("memorizationTo", evaluation.memorizationTo);
-      formData.append("revisionFrom", evaluation.revisionFrom);
-      formData.append("revisionTo", evaluation.revisionTo);
-      formData.append("memorizationPagesCount", memoPages);
-      formData.append("revisionPagesCount", revPages);
-      formData.append("mistakes", Number(String(evaluation.mistakes || 0)));
-      formData.append(
-        "videoQuestionsCorrect",
-        Number(evaluation.videoQuestionsCorrect || 0),
-      );
-      formData.append("grade", evaluation.grade);
-      formData.append("notes", evaluation.notes);
-
-      if (audioFile) {
-        formData.append("audioNote", audioFile);
-      } else if (recordedChunksRef.current.length > 0) {
-        const audioBlob = new Blob(recordedChunksRef.current, {
-          type: recordedChunksRef.current[0]?.type || "audio/webm",
-        });
-        formData.append(
-          "audioNote",
-          new File([audioBlob], "evaluation-audio.webm", {
-            type: audioBlob.type,
-          }),
-        );
+      const evaluationPayload = {
+        studentId: selectedStudent._id,
+        attendanceStatus: evaluation.attendanceStatus,
+        memorizationFrom: evaluation.memorizationFrom,
+        memorizationTo: evaluation.memorizationTo,
+        revisionFrom: evaluation.revisionFrom,
+        revisionTo: evaluation.revisionTo,
+        memorizationPagesCount: memoPages,
+        revisionPagesCount: revPages,
+        mistakes: Number(String(evaluation.mistakes || 0)),
+        videoQuestionsCorrect: Number(evaluation.videoQuestionsCorrect || 0),
+        grade: evaluation.grade,
+        notes: evaluation.notes,
+      };
+      if (selectedStudent.groupId) {
+        evaluationPayload.groupId = selectedStudent.groupId;
       }
 
-      await api.post("/teacher/evaluations", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const hasAudio = Boolean(
+        audioFile ||
+        (recordedChunksRef.current && recordedChunksRef.current.length > 0),
+      );
+      let requestBody = evaluationPayload;
+      let requestConfig;
+
+      if (hasAudio) {
+        const formData = new FormData();
+        Object.entries(evaluationPayload).forEach(([key, value]) => {
+          formData.append(key, value);
+        });
+
+        if (audioFile) {
+          formData.append("audioNote", audioFile);
+        } else {
+          const audioBlob = new Blob(recordedChunksRef.current, {
+            type: recordedChunksRef.current[0]?.type || "audio/webm",
+          });
+          formData.append(
+            "audioNote",
+            new File([audioBlob], "evaluation-audio.webm", {
+              type: audioBlob.type,
+            }),
+          );
+        }
+
+        requestBody = formData;
+        requestConfig = {
+          headers: { "Content-Type": "multipart/form-data" },
+        };
+      }
+
+      await api.post("/teacher/evaluations", requestBody, requestConfig);
 
       setToastMessage("تم حفظ التقييم اليومي بنجاح.");
       setEvaluation(defaultEvaluation);
       cleanupRecording();
       closeModal();
+      api
+        .get("/teacher/students-with-evaluations")
+        .then((studentsResponse) => {
+          setStudents(studentsResponse.data.students || []);
+        })
+        .catch((error) => {
+          console.error("Failed to refresh student evaluations:", error);
+        });
       setTimeout(() => setToastMessage(""), 4000);
     } catch (error) {
       console.error("Failed to save evaluation:", error);
@@ -619,6 +582,14 @@ export default function TeacherDashboard() {
       setIsSubmitting(false);
     }
   };
+
+  const filteredStudents = students.filter((student) => {
+    const searchValue = studentSearchQuery.trim().toLowerCase();
+    if (!searchValue) return true;
+    return `${student.firstName} ${student.lastName} ${student.email || ""}`
+      .toLowerCase()
+      .includes(searchValue);
+  });
 
   return (
     <div
@@ -673,15 +644,6 @@ export default function TeacherDashboard() {
           <div className="flex justify-center py-16">
             <div className="animate-spin rounded-full h-14 w-14 border-4 border-quran-600 border-t-transparent"></div>
           </div>
-        ) : groups.length === 0 ? (
-          <div className="rounded-3xl bg-white p-10 text-center shadow-sm border border-slate-200">
-            <h2 className="text-2xl font-semibold text-slate-900 mb-3">
-              لا توجد حلقات بعد
-            </h2>
-            <p className="text-slate-600">
-              عند إضافة حلقة جديدة سيتم عرضها هنا مع أزرار التقييم اليومي.
-            </p>
-          </div>
         ) : (
           <>
             {toastMessage && (
@@ -689,174 +651,86 @@ export default function TeacherDashboard() {
                 {toastMessage}
               </div>
             )}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {groups.map((group) => (
-                <section
-                  key={group._id}
-                  className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm"
-                >
-                  <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm text-slate-500">اسم الحلقة</p>
-                      <h2 className="text-2xl font-semibold text-slate-900">
-                        {group.name}
-                      </h2>
-                    </div>
-                    <span className="inline-flex rounded-full bg-quran-100 px-4 py-2 text-sm font-semibold text-quran-800">
-                      المعلم:{" "}
-                      {user ? `${user.firstName} ${user.lastName}` : "غير محدد"}
-                    </span>
-                  </div>
-
-                  <div className="mb-6 rounded-3xl bg-quran-50 p-5 shadow-sm">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm text-slate-500">خطة اليوم</p>
-                        {currentLessons[group._id]?.curriculum ? (
-                          <>
-                            <h3 className="mt-2 text-xl font-semibold text-slate-900">
-                              {currentLessons[group._id]?.lesson?.title ||
-                                "درس غير محدد"}
-                            </h3>
-                            <p className="mt-3 text-sm text-slate-700">
-                              {currentLessons[group._id]?.lesson?.task ||
-                                "لا توجد مهمة محددة لهذا الدرس."}
-                            </p>
-                          </>
-                        ) : currentLessons[group._id]?.message ? (
-                          <p className="mt-2 text-sm text-slate-700">
-                            {currentLessons[group._id].message}
-                          </p>
-                        ) : (
-                          <p className="mt-2 text-sm text-slate-700">
-                            جاري تحميل خطة اليوم...
-                          </p>
-                        )}
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-slate-900">
+                    قائمة طلاب الأكاديمية
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {filteredStudents.length} من {students.length} طالب
+                  </p>
+                </div>
+                <input
+                  type="search"
+                  value={studentSearchQuery}
+                  onChange={(event) =>
+                    setStudentSearchQuery(event.target.value)
+                  }
+                  placeholder="ابحث عن طالب بالاسم أو البريد..."
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm sm:max-w-sm"
+                />
+              </div>
+              {filteredStudents.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500">
+                  {students.length
+                    ? "لا يوجد طلاب مطابقون للبحث."
+                    : "لا يوجد طلاب مسجلون في الأكاديمية."}
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {filteredStudents.map((student) => (
+                    <li
+                      key={student._id}
+                      className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900">
+                          {student.firstName} {student.lastName}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {student.email || "لا يوجد بريد إلكتروني"}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
+                          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-800">
+                            النقاط: {student.points || 0}
+                          </span>
+                          <span className="rounded-full bg-amber-50 px-3 py-1.5 text-amber-800">
+                            السلسلة: {student.evaluationStreak?.count || 0}
+                          </span>
+                          <span className="rounded-full bg-sky-50 px-3 py-1.5 text-sky-800">
+                            الأوسمة: {student.badges?.length || 0}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-3 sm:items-end">
-                        {currentLessons[group._id]?.lesson?.videoUrl ? (
-                          <a
-                            href={currentLessons[group._id].lesson.videoUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-3xl bg-white px-4 py-3 text-sm font-semibold text-quran-700 shadow-sm hover:bg-slate-100"
-                          >
-                            مشاهدة فيديو الدرس
-                          </a>
-                        ) : null}
-                        {currentLessons[group._id]?.lesson?.pdfUrl ? (
-                          <a
-                            href={currentLessons[group._id].lesson.pdfUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-3xl bg-white px-4 py-3 text-sm font-semibold text-quran-700 shadow-sm hover:bg-slate-100"
-                          >
-                            تحميل / عرض PDF
-                          </a>
-                        ) : null}
+                      <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => handleAdvanceLesson(group._id)}
-                          disabled={
-                            groupLessonLoading[group._id] ||
-                            !currentLessons[group._id]?.lesson ||
-                            currentLessons[group._id]?.currentLessonIndex >=
-                              currentLessons[group._id]?.totalLessons - 1
-                          }
-                          className="rounded-3xl bg-quran-700 px-4 py-3 text-sm font-semibold text-white hover:bg-quran-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                          onClick={() => openEvaluationModal(student)}
+                          className="rounded-xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white hover:bg-quran-700"
                         >
-                          الانتقال إلى الدرس التالي
+                          إضافة تقييم يومي
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openHistoryModal(student)}
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          سجل التقييمات
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openBadgeModal(student)}
+                          className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                        >
+                          منح وسام
                         </button>
                       </div>
-                    </div>
-                    {lessonActionMessage && (
-                      <p className="mt-4 text-sm text-emerald-700">
-                        {lessonActionMessage}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="rounded-3xl bg-slate-50 p-5">
-                    <p className="mb-4 text-sm font-medium text-slate-700">
-                      الطلاب في الحلقة (
-                      {group?.students?.length ||
-                        group?.studentIds?.length ||
-                        0}
-                      )
-                    </p>
-                    {(group?.students?.length ||
-                      group?.studentIds?.length ||
-                      0) === 0 ? (
-                      <p className="text-sm text-slate-500">
-                        لا يوجد طلاب مضافين لهذه الحلقة.
-                      </p>
-                    ) : (
-                      <div className="overflow-x-auto w-full">
-                        <ul className="min-w-full space-y-4">
-                          {(group?.students || group?.studentIds || []).map(
-                            (student) => {
-                              return (
-                                <li
-                                  key={student._id}
-                                  className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-                                >
-                                  <div>
-                                    <p className="text-base font-semibold text-slate-900">
-                                      {student.firstName} {student.lastName}
-                                    </p>
-                                    <p className="text-sm text-slate-500">
-                                      طالب في الحلقة {group.name}
-                                    </p>
-                                  </div>
-                                  <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="rounded-full bg-quran-100 px-3 py-2 text-xs font-semibold text-quran-800">
-                                        الأوسمة: {student.badges?.length || 0}
-                                      </span>
-                                      <span className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
-                                        سلسلة:{" "}
-                                        {student.evaluationStreak?.count || 0}
-                                      </span>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-3">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          openEvaluationModal(student, group)
-                                        }
-                                        className="inline-flex items-center justify-center rounded-2xl bg-quran-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-quran-700"
-                                      >
-                                        إضافة تقييم يومي
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          openHistoryModal(student)
-                                        }
-                                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                                      >
-                                        سجل التقييمات
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => openBadgeModal(student)}
-                                        className="inline-flex items-center justify-center rounded-2xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-                                      >
-                                        منح وسام
-                                      </button>
-                                    </div>
-                                  </div>
-                                </li>
-                              );
-                            },
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </>
         )}
 
@@ -1545,6 +1419,12 @@ export default function TeacherDashboard() {
                           </p>
                           <p className="text-base font-semibold text-slate-900">
                             {formatDate(item.date)}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            المعلم:{" "}
+                            {item.teacherId
+                              ? `${item.teacherId.firstName} ${item.teacherId.lastName}`
+                              : "معلم"}
                           </p>
                         </div>
                         {item.videoCompletion && (

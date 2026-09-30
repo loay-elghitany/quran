@@ -26,7 +26,7 @@ const assignmentCreateSchema = Joi.object({
 
 const evaluationCreateSchema = Joi.object({
   studentId: objectIdSchema,
-  groupId: objectIdSchema,
+  groupId: objectIdSchema.optional().allow(null, ""),
   attendanceStatus: Joi.string()
     .valid("حاضر", "متأخر", "غائب", "غائب بعذر", "غائب بدون عذر")
     .required(),

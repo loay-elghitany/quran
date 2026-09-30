@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const app = require("../src/app");
 const User = require("../src/models/user.model");
 const Group = require("../src/models/group.model");
+const Evaluation = require("../src/models/evaluation.model");
 
 let mongoServer;
 let adminToken;
@@ -274,5 +275,36 @@ describe("POST /api/admin/groups", () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe("Teacher is required.");
+  });
+});
+
+describe("GET /api/admin/evaluations", () => {
+  it("should return evaluations populated with student and teacher identities", async () => {
+    const teacher = await User.findOne({ role: "Teacher" });
+    const student = await User.create({
+      firstName: "Audit",
+      lastName: "Student",
+      email: "audit-student@example.com",
+      password: "studentpass123",
+      role: "Student",
+      teacherId: teacher._id,
+    });
+    await Evaluation.create({
+      teacherId: teacher._id,
+      studentId: student._id,
+      attendance: "حاضر",
+      grade: "10",
+      earnedPoints: 50,
+    });
+
+    const response = await request(app)
+      .get("/api/admin/evaluations")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.evaluations).toHaveLength(1);
+    expect(response.body.evaluations[0].studentId.firstName).toBe("Audit");
+    expect(response.body.evaluations[0].teacherId.firstName).toBe("Teacher");
+    expect(response.body.evaluations[0].earnedPoints).toBe(50);
   });
 });

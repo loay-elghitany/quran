@@ -238,6 +238,19 @@ const exportTeachersSummaryPdf = async (req, res, next) => {
   }
 };
 
+const getAdminEvaluations = async (req, res, next) => {
+  try {
+    const evaluations = await Evaluation.find()
+      .sort({ date: -1 })
+      .populate("studentId", "firstName lastName email")
+      .populate("teacherId", "firstName lastName email");
+
+    res.json({ success: true, evaluations });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const exportTopStudentsPdf = async (req, res, next) => {
   try {
     const topStudents = await User.find({ role: "Student" })
@@ -759,6 +772,7 @@ module.exports = {
   deleteUser,
   getUsers,
   getGroups,
+  getAdminEvaluations,
   exportStudentCredentials,
   exportTeachersSummaryPdf,
   exportTopStudentsPdf,

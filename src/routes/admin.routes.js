@@ -10,6 +10,7 @@ const {
   deleteUser,
   getUsers,
   getGroups,
+  getAdminEvaluations,
   exportStudentCredentials,
   exportTeachersSummaryPdf,
   exportTopStudentsPdf,
@@ -100,6 +101,7 @@ router.use(roleMiddleware("SuperAdmin"));
 
 router.get("/users", getUsers);
 router.get("/groups", getGroups);
+router.get("/evaluations", getAdminEvaluations);
 router.get("/export/students-credentials", exportStudentCredentials);
 router.get("/export/teachers-summary", exportTeachersSummaryPdf);
 router.get("/export/top-students", exportTopStudentsPdf);

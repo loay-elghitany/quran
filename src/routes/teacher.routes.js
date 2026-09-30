@@ -52,6 +52,13 @@ const upload = multer({
   },
 });
 
+const uploadAudioIfMultipart = (req, res, next) => {
+  if (!req.is("multipart/form-data")) {
+    return next();
+  }
+  return upload.single("audioNote")(req, res, next);
+};
+
 const router = express.Router();
 
 router.use(authMiddleware);
@@ -75,7 +82,7 @@ router.post(
 );
 router.post(
   "/evaluations",
-  upload.single("audioNote"),
+  uploadAudioIfMultipart,
   validateBody(evaluationCreateSchema),
   createEvaluation,
 );

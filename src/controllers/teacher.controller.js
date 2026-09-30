@@ -5,16 +5,15 @@ const Badge = require("../models/badge.model");
 const LeaveRequest = require("../models/leaverequest.model");
 const User = require("../models/user.model");
 const LessonProgress = require("../models/lessonProgress.model");
+const Curriculum = require("../models/curriculum.model");
 const SystemSettings = require("../models/systemSettings.model");
 const notificationService = require("../services/notification.service");
 
 const getStudents = async (req, res, next) => {
   try {
-    const groups = await Group.find({ teacherId: req.user._id }).populate(
-      "studentIds",
-      "firstName lastName email phone role teacherId childrenIds",
-    );
-    const students = groups.flatMap((group) => group.studentIds);
+    const students = await User.find({ role: "Student" })
+      .select("firstName lastName email phone points badges evaluationStreak")
+      .sort({ firstName: 1 });
     res.json({ students });
   } catch (error) {
     next(error);
@@ -37,40 +36,25 @@ const getTeacherDashboard = async (req, res) => {
 
 const getTeacherStudentsWithEvaluations = async (req, res) => {
   try {
-    const groups = await Group.find({ teacherId: req.user._id }).populate(
-      "studentIds",
-      "firstName lastName email phone points",
-    );
+    const students = await User.find({ role: "Student" })
+      .select("firstName lastName email phone points badges evaluationStreak")
+      .sort({ firstName: 1 });
 
-    const enrichedGroups = await Promise.all(
-      groups.map(async (group) => {
-        const students = await Promise.all(
-          group.studentIds.map(async (student) => {
-            const evaluations = await Evaluation.find({
-              studentId: student._id,
-            })
-              .sort({ date: -1 })
-              .select(
-                "date attendance earnedPoints newMemorization revision mistakes grade notes audioNote groupId videoQuestionsCorrect videoQuestionsPoints",
-              )
-              .populate("groupId", "name");
-
-            return {
-              ...student.toObject(),
-              evaluations,
-            };
-          }),
-        );
+    const studentsWithEvals = await Promise.all(
+      students.map(async (student) => {
+        const evaluations = await Evaluation.find({ studentId: student._id })
+          .sort({ date: -1 })
+          .populate("teacherId", "firstName lastName")
+          .populate("groupId", "name");
 
         return {
-          _id: group._id,
-          name: group.name,
-          students,
+          ...student.toObject(),
+          evaluations,
         };
       }),
     );
 
-    res.status(200).json({ success: true, groups: enrichedGroups });
+    res.status(200).json({ success: true, students: studentsWithEvals });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -167,8 +151,8 @@ const createEvaluation = async (req, res, next) => {
         req.body.revisionPagesCount || req.body.revision_pages_count || 0,
       ) || 0;
 
-    if (!studentId || !groupId) {
-      return res.status(400).json({ message: "يجب تحديد الطالب والحلقة." });
+    if (!studentId) {
+      return res.status(400).json({ message: "يجب تحديد الطالب." });
     }
 
     // Fetch dynamic settings from database
@@ -241,7 +225,7 @@ const createEvaluation = async (req, res, next) => {
     const evaluation = new Evaluation({
       teacherId: req.user._id,
       studentId,
-      groupId,
+      groupId: groupId || null,
       attendance: attendanceStatus,
       earnedPoints,
       newMemorization: {
@@ -276,11 +260,7 @@ const createEvaluation = async (req, res, next) => {
     }
 
     if (isPresent) {
-      await User.findByIdAndUpdate(studentId, {
-        $inc: { points: earnedPoints },
-      });
-
-      const student = await User.findById(studentId);
+      const student = await User.findById(studentId).select("evaluationStreak");
       if (student) {
         const previousStreak = student.evaluationStreak || {
           currentGrade: "",
@@ -294,12 +274,16 @@ const createEvaluation = async (req, res, next) => {
               ? previousStreak.count + 1
               : 1;
 
-        student.evaluationStreak = {
-          currentGrade: grade,
-          count: currentCount,
-          maxStreak: Math.max(previousStreak.maxStreak || 0, currentCount),
-        };
-        await student.save();
+        await User.findByIdAndUpdate(studentId, {
+          $inc: { points: earnedPoints },
+          $set: {
+            evaluationStreak: {
+              currentGrade: grade,
+              count: currentCount,
+              maxStreak: Math.max(previousStreak.maxStreak || 0, currentCount),
+            },
+          },
+        });
       }
     }
 
@@ -393,12 +377,19 @@ const getStudentLessonProgress = async (req, res) => {
       return res.status(404).json({ message: "الطالب غير موجود." });
     }
 
-    const group = await Group.findOne({
-      teacherId: req.user._id,
-      studentIds: student._id,
-    }).populate("curriculumId");
+    const group = await Group.findOne({ studentIds: student._id }).populate(
+      "curriculumId",
+    );
+    let curriculum = group?.curriculumId || null;
 
-    if (!group || !group.curriculumId) {
+    if (!curriculum) {
+      curriculum = await Curriculum.findOne({
+        target: "student",
+        isGlobal: true,
+      }).sort({ createdAt: -1 });
+    }
+
+    if (!curriculum) {
       return res.json({
         studentId: student._id,
         hasWatched: false,
@@ -412,17 +403,17 @@ const getStudentLessonProgress = async (req, res) => {
 
     const currentLessonIndex = Math.max(
       0,
-      Number(group.currentLessonIndex ?? 0),
+      Number(group?.currentLessonIndex ?? 0),
     );
 
     const lesson =
-      group.curriculumId.lessons?.[currentLessonIndex] ||
-      group.curriculumId.lessons?.[0] ||
+      curriculum.lessons?.[currentLessonIndex] ||
+      curriculum.lessons?.[0] ||
       null;
 
     const progress = await LessonProgress.findOne({
       studentId: student._id,
-      curriculumId: group.curriculumId._id,
+      curriculumId: curriculum._id,
       lessonIndex: currentLessonIndex,
     });
 
@@ -430,7 +421,7 @@ const getStudentLessonProgress = async (req, res) => {
 
     res.json({
       studentId: student._id,
-      groupId: group._id,
+      ...(group ? { groupId: group._id } : {}),
       hasWatched: Boolean(progress?.hasWatched) || watchPercentage >= 75,
       watchPercentage,
       currentLessonIndex,
@@ -459,9 +450,9 @@ const getEvaluationHistory = async (req, res) => {
 
     const evaluations = await Evaluation.find({
       studentId,
-      teacherId: req.user._id,
     })
       .sort({ date: -1 })
+      .populate("teacherId", "firstName lastName")
       .populate("groupId", "name");
 
     res.json({ evaluations });
